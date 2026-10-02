@@ -28,7 +28,7 @@ body {
 button { font: inherit; }
 
 .instrument {
-	width: min(100% - 80px, 1120px);
+	width: min(100% - 64px, 1456px);
 	margin: 0 auto;
 }
 
@@ -98,12 +98,25 @@ h1 span { color: var(--green); }
 .keyboard-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; color: #5f625b; }
 .sound-state { display: inline-flex; align-items: center; gap: 7px; }
 .sound-dot { width: 6px; height: 6px; background: var(--coral); }
+.piano-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin-bottom: 10px; }
+.transport-controls { display: flex; align-items: center; gap: 7px; }
+.transport-button { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font-size: 11px; cursor: pointer; transition: background 130ms ease, border-color 130ms ease, color 130ms ease; }
+.transport-button:hover:not(:disabled), .transport-button:focus-visible { border-color: var(--green); color: var(--green); background: #f4f5ef; }
+.transport-button:disabled { opacity: 0.42; cursor: not-allowed; }
+.record-button { border-color: #d6b5a9; }
+.record-button.is-recording { border-color: var(--coral); color: #a93f2a; background: #f7e8e2; }
+.record-icon { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); }
+.record-button.is-recording .record-icon { animation: record-pulse 1s ease-in-out infinite alternate; }
+.play-icon { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid currentColor; }
+.clear-button { width: 32px; padding: 0; font-size: 18px; }
+.recording-status { color: var(--muted); font-family: "DM Mono", monospace; font-size: 10px; }
+@keyframes record-pulse { to { opacity: 0.35; } }
 .keyboard {
 	position: relative;
 	display: grid;
 	grid-template-columns: 1fr;
 	height: clamp(205px, 27vw, 285px);
-	overflow-x: auto;
+	overflow-x: hidden;
 	overflow-y: hidden;
 	padding: 0 10px 10px;
 	border: 1px solid #b7b4aa;
@@ -111,9 +124,11 @@ h1 span { color: var(--green); }
 	background: #dedbd2;
 	box-shadow: 0 12px 26px #292d2910;
 	touch-action: none;
+	scrollbar-width: none;
 	user-select: none;
 }
-.white-keys, .black-keys { position: absolute; top: 0; bottom: 10px; left: 10px; width: max(calc(100% - 20px), 1456px); }
+.keyboard::-webkit-scrollbar { display: none; }
+.white-keys, .black-keys { position: absolute; top: 0; bottom: 10px; left: 10px; width: calc(100% - 20px); }
 .white-keys { display: grid; grid-template-columns: repeat(52, minmax(0, 1fr)); gap: 1px; }
 .piano-key {
 	position: relative;
@@ -143,7 +158,7 @@ h1 span { color: var(--green); }
 	position: absolute;
 	top: 0;
 	width: calc(100% / 52 * 0.62);
-	height: 61%;
+	height: 43%;
 	padding: 0 0 11px;
 	border: 1px solid #141714;
 	border-top: 0;
@@ -201,7 +216,7 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.octave-stepper { gap: 7px; }
 	.octave-stepper output { min-width: 36px; font-size: 16px; }
 	.step-button { width: 30px; height: 30px; }
-	.keyboard { height: 210px; padding-right: 6px; padding-left: 6px; }
+	.keyboard { height: 210px; overflow-x: auto; padding-right: 6px; padding-left: 6px; touch-action: pan-x; }
 	.white-keys, .black-keys { left: 6px; width: max(calc(100% - 12px), 1456px); }
 	.white-key { padding-bottom: 11px; }
 	.key-note { font-size: 9px; }
@@ -213,6 +228,7 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.guide-key { min-height: 44px; }
 	.modifier-guide { grid-column: auto; gap: 10px; }
 	.modifier-row { font-size: 11px; }
+	.transport-button { padding: 0 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

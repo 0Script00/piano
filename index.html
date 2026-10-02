@@ -42,6 +42,14 @@
 					<span>PIANO · <span id="range-label">ACTIVE C4</span></span>
 					<span class="sound-state"><span class="sound-dot"></span> SOUND ON</span>
 				</div>
+				<div class="piano-toolbar" aria-label="녹음 및 재생">
+					<div class="transport-controls">
+						<button class="transport-button record-button" id="record-toggle" type="button"><span class="record-icon" aria-hidden="true"></span><span id="record-label">녹음</span></button>
+						<button class="transport-button" id="play-recording" type="button" disabled><span class="play-icon" aria-hidden="true"></span><span id="play-label">재생</span></button>
+						<button class="transport-button clear-button" id="clear-recording" type="button" disabled aria-label="녹음 지우기" title="녹음 지우기"><span aria-hidden="true">×</span></button>
+					</div>
+					<span class="recording-status" id="recording-status" aria-live="polite">녹음 없음</span>
+				</div>
 				<div class="keyboard" id="keyboard" role="group" aria-label="A0부터 C8까지 가상 피아노">
 					<div class="white-keys" id="white-keys"></div>
 					<div class="black-keys" id="black-keys"></div>

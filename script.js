@@ -19,12 +19,24 @@ const keyGuide = document.querySelector("#key-guide");
 const octaveValue = document.querySelector("#octave-value");
 const rangeLabel = document.querySelector("#range-label");
 const keyboard = document.querySelector("#keyboard");
+const recordButton = document.querySelector("#record-toggle");
+const recordLabel = document.querySelector("#record-label");
+const playButton = document.querySelector("#play-recording");
+const playLabel = document.querySelector("#play-label");
+const clearButton = document.querySelector("#clear-recording");
+const recordingStatus = document.querySelector("#recording-status");
 const heldCodes = new Set();
 const activeVoices = new Map();
 const keyElements = new Map();
 const pitchNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const recordingEvents = [];
+const recordingTokens = new Set();
+const playbackTimers = [];
 let baseOctave = 4;
 let audioContext;
+let recordingStartedAt = 0;
+let isRecording = false;
+let isPlaying = false;
 
 function createKey(note, midi, whiteIndex) {
 	const button = document.createElement("button");
@@ -98,8 +110,28 @@ function updateOctave() {
 	if (firstKey) keyboard.scrollLeft = firstKey.offsetLeft + whiteKeys.offsetLeft - keyboard.clientWidth / 2;
 }
 
+function updateRecorder() {
+	recordButton.classList.toggle("is-recording", isRecording);
+	recordLabel.textContent = isRecording ? "녹음 중지" : "녹음";
+	playLabel.textContent = isPlaying ? "정지" : "재생";
+	recordButton.disabled = isPlaying;
+	playButton.disabled = isRecording || recordingEvents.length === 0;
+	clearButton.disabled = isRecording || isPlaying || recordingEvents.length === 0;
+	const noteCount = recordingEvents.filter((event) => event.type === "on").length;
+	recordingStatus.textContent = isRecording ? "REC · 녹음 중" : noteCount ? `${noteCount}개 음 녹음됨` : "녹음 없음";
+}
+
+function captureRecordingEvent(type, token, midi) {
+	if (!isRecording) return;
+	if (type === "off" && !recordingTokens.has(token)) return;
+	if (type === "on") recordingTokens.add(token);
+	else recordingTokens.delete(token);
+	recordingEvents.push({ type, token, midi, time: performance.now() - recordingStartedAt });
+}
+
 function startNote(token, note, midi, keyElement = keyElements.get(midi)) {
 	if (activeVoices.has(token)) return;
+	captureRecordingEvent("on", token, midi);
 	const frequency = 440 * 2 ** ((midi - 69) / 12);
 	const context = audioContext ??= new AudioContext();
 	if (context.state === "suspended") context.resume();
@@ -122,12 +154,13 @@ function startNote(token, note, midi, keyElement = keyElements.get(midi)) {
 	overtone.start(now);
 
 	keyElement?.classList.add("is-active");
-	activeVoices.set(token, { gain, fundamental, overtone, keyElement });
+	activeVoices.set(token, { gain, fundamental, overtone, keyElement, midi });
 }
 
 function stopNote(token) {
 	const voice = activeVoices.get(token);
 	if (!voice) return;
+	captureRecordingEvent("off", token, voice.midi);
 	activeVoices.delete(token);
 	const now = audioContext.currentTime;
 	voice.gain.gain.cancelScheduledValues(now);
@@ -137,6 +170,61 @@ function stopNote(token) {
 	if (![...activeVoices.values()].some((active) => active.keyElement === voice.keyElement)) {
 		voice.keyElement?.classList.remove("is-active");
 	}
+}
+
+function toggleRecording() {
+	if (isPlaying) return;
+	if (isRecording) {
+		const stopTime = performance.now() - recordingStartedAt;
+		for (const token of recordingTokens) {
+			const voice = activeVoices.get(token);
+			if (voice) recordingEvents.push({ type: "off", token, midi: voice.midi, time: stopTime });
+		}
+		recordingTokens.clear();
+		isRecording = false;
+	} else {
+		recordingEvents.length = 0;
+		recordingTokens.clear();
+		recordingStartedAt = performance.now();
+		isRecording = true;
+	}
+	updateRecorder();
+}
+
+function stopPlayback() {
+	for (const timer of playbackTimers) window.clearTimeout(timer);
+	playbackTimers.length = 0;
+	for (const token of activeVoices.keys()) {
+		if (token.startsWith("playback-")) stopNote(token);
+	}
+	isPlaying = false;
+	updateRecorder();
+}
+
+function togglePlayback() {
+	if (isPlaying) {
+		stopPlayback();
+		return;
+	}
+	if (isRecording || recordingEvents.length === 0) return;
+	isPlaying = true;
+	updateRecorder();
+	for (const event of recordingEvents) {
+		const timer = window.setTimeout(() => {
+			const token = `playback-${event.token}`;
+			if (event.type === "on") startNote(token, { note: pitchNames[event.midi % 12] }, event.midi);
+			else stopNote(token);
+		}, event.time);
+		playbackTimers.push(timer);
+	}
+	const duration = Math.max(...recordingEvents.map((event) => event.time));
+	playbackTimers.push(window.setTimeout(stopPlayback, duration + 250));
+}
+
+function clearRecording() {
+	if (isRecording || isPlaying) return;
+	recordingEvents.length = 0;
+	updateRecorder();
 }
 
 document.addEventListener("keydown", (event) => {
@@ -180,4 +268,9 @@ document.querySelector("#octave-up").addEventListener("click", () => {
 	updateOctave();
 });
 
+recordButton.addEventListener("click", toggleRecording);
+playButton.addEventListener("click", togglePlayback);
+clearButton.addEventListener("click", clearRecording);
+
 updateOctave();
+updateRecorder();
