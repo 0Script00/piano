@@ -122,6 +122,10 @@ function stopNote(token) {
 }
 
 document.addEventListener("keydown", (event) => {
+	if (event.ctrlKey && event.code === "KeyS") event.preventDefault();
+}, true);
+
+document.addEventListener("keydown", (event) => {
 	if (["ControlLeft", "ShiftLeft", "ShiftRight"].includes(event.code)) {
 		heldCodes.add(event.code);
 		updateOctave();
