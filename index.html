@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="theme-color" content="#f2efe8" />
+		<title>키 피아노</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="style.css" />
+		<script src="script.js" defer></script>
+	</head>
+	<body>
+		<main class="instrument">
+			<header class="topbar">
+				<a class="brand" href="#" aria-label="키 피아노 홈">
+					<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+					<span>KEY / PIANO</span>
+				</a>
+				<div class="live-status"><span class="live-dot"></span> LIVE INSTRUMENT</div>
+			</header>
+
+			<section class="intro" aria-labelledby="title">
+				<div class="intro-copy">
+					<p class="eyebrow">A LITTLE ROOM TO PLAY</p>
+					<h1 id="title">손끝으로<br /><span>연주해 보세요.</span></h1>
+					<p class="subtitle">키보드나 건반을 눌러 소리를 들어보세요.</p>
+				</div>
+				<div class="octave-control" aria-label="옥타브 조절">
+					<span class="control-label">OCTAVE</span>
+					<div class="octave-stepper">
+						<button class="step-button" id="octave-down" type="button" aria-label="옥타브 낮추기" title="옥타브 낮추기">−</button>
+						<output id="octave-value" aria-live="polite">C4</output>
+						<button class="step-button" id="octave-up" type="button" aria-label="옥타브 높이기" title="옥타브 높이기">+</button>
+					</div>
+				</div>
+			</section>
+
+			<section class="piano-section" aria-label="피아노 건반">
+				<div class="keyboard-heading">
+					<span>PIANO · <span id="range-label">C4 — B4</span></span>
+					<span class="sound-state"><span class="sound-dot"></span> SOUND ON</span>
+				</div>
+				<div class="keyboard" id="keyboard" role="group" aria-label="가상 피아노">
+					<div class="white-keys" id="white-keys"></div>
+					<div class="black-keys" id="black-keys"></div>
+				</div>
+				<div class="keyboard-footer">
+					<span>낮은 음</span>
+					<span class="footer-mark">C&nbsp; D&nbsp; E&nbsp; F&nbsp; G&nbsp; A&nbsp; B</span>
+					<span>높은 음</span>
+				</div>
+			</section>
+
+			<section class="shortcuts" aria-labelledby="shortcuts-title">
+				<div class="shortcuts-title">
+					<p class="eyebrow">YOUR KEYBOARD, YOUR PIANO</p>
+					<h2 id="shortcuts-title">연주 키</h2>
+				</div>
+				<div class="key-guide" id="key-guide" aria-label="키보드 건반 배치"></div>
+				<div class="modifier-guide" aria-label="옥타브 단축키">
+					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="modifier-arrow">↑</span><span>한 옥타브 위</span></div>
+					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="key-join">+</span><span class="keycap">LShift</span><span class="modifier-arrow">↑↑</span><span>두 옥타브 위</span></div>
+					<div class="modifier-row"><span class="keycap">LShift</span><span class="modifier-arrow">↓</span><span>한 옥타브 아래</span></div>
+					<div class="modifier-row"><span class="keycap">LShift</span><span class="key-join">+</span><span class="keycap">RShift</span><span class="modifier-arrow">↓↓</span><span>두 옥타브 아래</span></div>
+				</div>
+			</section>
+
+			<footer class="page-footer"><span>PLAY A NOTE. FIND A MOMENT.</span><span>01 / 12</span></footer>
+		</main>
+	</body>
+</html>
