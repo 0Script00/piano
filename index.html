@@ -50,6 +50,11 @@
 					</div>
 					<span class="recording-status" id="recording-status" aria-live="polite">녹음 없음</span>
 				</div>
+				<div class="recording-save-controls">
+					<label class="sr-only" for="recording-name">녹음 이름</label>
+					<input id="recording-name" type="text" maxlength="40" placeholder="녹음 이름" autocomplete="off" />
+					<button class="transport-button save-recording-button" id="save-recording" type="button" disabled>사이트에 저장</button>
+				</div>
 				<div class="keyboard" id="keyboard" role="group" aria-label="A0부터 C8까지 가상 피아노">
 					<div class="white-keys" id="white-keys"></div>
 					<div class="black-keys" id="black-keys"></div>
@@ -59,6 +64,13 @@
 					<span class="footer-mark">C&nbsp; D&nbsp; E&nbsp; F&nbsp; G&nbsp; A&nbsp; B</span>
 					<span>높은 음</span>
 				</div>
+				<section class="recording-library" aria-labelledby="recording-library-title">
+					<div class="library-heading">
+						<h2 id="recording-library-title">내 녹음</h2>
+						<span class="library-storage-note">이 브라우저에 저장됩니다</span>
+					</div>
+					<div class="saved-recordings" id="saved-recordings" aria-live="polite"></div>
+				</section>
 			</section>
 
 			<section class="shortcuts" aria-labelledby="shortcuts-title">

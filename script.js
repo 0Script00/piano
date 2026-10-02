@@ -25,6 +25,9 @@ const playButton = document.querySelector("#play-recording");
 const playLabel = document.querySelector("#play-label");
 const clearButton = document.querySelector("#clear-recording");
 const recordingStatus = document.querySelector("#recording-status");
+const recordingNameInput = document.querySelector("#recording-name");
+const saveRecordingButton = document.querySelector("#save-recording");
+const savedRecordingsElement = document.querySelector("#saved-recordings");
 const heldCodes = new Set();
 const activeVoices = new Map();
 const keyElements = new Map();
@@ -32,6 +35,9 @@ const pitchNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 const recordingEvents = [];
 const recordingTokens = new Set();
 const playbackTimers = [];
+const recordingStorageKey = "key-piano-recordings-v1";
+let savedRecordings = [];
+let loadedRecordingId = null;
 let baseOctave = 4;
 let audioContext;
 let recordingStartedAt = 0;
@@ -117,6 +123,7 @@ function updateRecorder() {
 	recordButton.disabled = isPlaying;
 	playButton.disabled = isRecording || recordingEvents.length === 0;
 	clearButton.disabled = isRecording || isPlaying || recordingEvents.length === 0;
+	saveRecordingButton.disabled = isRecording || isPlaying || recordingEvents.length === 0;
 	const noteCount = recordingEvents.filter((event) => event.type === "on").length;
 	recordingStatus.textContent = isRecording ? "REC · 녹음 중" : noteCount ? `${noteCount}개 음 녹음됨` : "녹음 없음";
 }
@@ -227,6 +234,118 @@ function clearRecording() {
 	updateRecorder();
 }
 
+function readSavedRecordings() {
+	try {
+		const recordings = JSON.parse(window.localStorage.getItem(recordingStorageKey) || "[]");
+		return Array.isArray(recordings) ? recordings.filter((recording) =>
+			typeof recording.id === "string" &&
+			typeof recording.name === "string" &&
+			Array.isArray(recording.events) &&
+			recording.events.every((event) =>
+				(event.type === "on" || event.type === "off") &&
+				Number.isFinite(event.midi) &&
+				Number.isFinite(event.time),
+			),
+		) : [];
+	} catch {
+		return [];
+	}
+}
+
+function renderSavedRecordings() {
+	savedRecordingsElement.replaceChildren();
+	if (savedRecordings.length === 0) {
+		const emptyState = document.createElement("p");
+		emptyState.className = "library-empty";
+		emptyState.textContent = "저장된 녹음이 없습니다.";
+		savedRecordingsElement.append(emptyState);
+		return;
+	}
+
+	for (const recording of savedRecordings) {
+		const row = document.createElement("article");
+		row.className = "saved-recording";
+		const details = document.createElement("div");
+		details.className = "saved-recording-details";
+		const title = document.createElement("strong");
+		title.className = "saved-recording-name";
+		title.textContent = recording.name;
+		const meta = document.createElement("span");
+		meta.className = "saved-recording-meta";
+		const noteCount = recording.events.filter((event) => event.type === "on").length;
+		const savedDate = new Date(recording.createdAt);
+		meta.textContent = `${noteCount}개 음 · ${Number.isNaN(savedDate.getTime()) ? "저장된 녹음" : savedDate.toLocaleString("ko-KR")}`;
+		details.append(title, meta);
+
+		const actions = document.createElement("div");
+		actions.className = "saved-recording-actions";
+		const loadButton = document.createElement("button");
+		loadButton.type = "button";
+		loadButton.className = "library-action";
+		loadButton.textContent = "불러오기";
+		loadButton.addEventListener("click", () => loadSavedRecording(recording));
+		const deleteButton = document.createElement("button");
+		deleteButton.type = "button";
+		deleteButton.className = "library-action delete-recording";
+		deleteButton.textContent = "삭제";
+		deleteButton.setAttribute("aria-label", `${recording.name} 삭제`);
+		deleteButton.addEventListener("click", () => deleteSavedRecording(recording.id));
+		actions.append(loadButton, deleteButton);
+		row.append(details, actions);
+		savedRecordingsElement.append(row);
+	}
+}
+
+function saveCurrentRecording() {
+	if (isRecording || isPlaying || recordingEvents.length === 0) return;
+	const name = recordingNameInput.value.trim() || `녹음 ${new Date().toLocaleString("ko-KR")}`;
+	const recording = {
+		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		name,
+		createdAt: new Date().toISOString(),
+		events: recordingEvents.map((event) => ({ ...event })),
+	};
+	savedRecordings.unshift(recording);
+	try {
+		window.localStorage.setItem(recordingStorageKey, JSON.stringify(savedRecordings));
+	} catch {
+		savedRecordings.shift();
+		recordingStatus.textContent = "브라우저 저장 공간을 사용할 수 없습니다.";
+		return;
+	}
+	loadedRecordingId = recording.id;
+	recordingNameInput.value = "";
+	recordingStatus.textContent = "사이트에 저장됨";
+	renderSavedRecordings();
+	updateRecorder();
+}
+
+function loadSavedRecording(recording) {
+	if (isRecording || isPlaying) return;
+	recordingEvents.splice(0, recordingEvents.length, ...recording.events.map((event) => ({ ...event })));
+	loadedRecordingId = recording.id;
+	recordingStatus.textContent = `${recording.name} 불러옴`;
+	updateRecorder();
+}
+
+function deleteSavedRecording(recordingId) {
+	const previousRecordings = savedRecordings;
+	savedRecordings = savedRecordings.filter((recording) => recording.id !== recordingId);
+	try {
+		window.localStorage.setItem(recordingStorageKey, JSON.stringify(savedRecordings));
+	} catch {
+		savedRecordings = previousRecordings;
+		recordingStatus.textContent = "녹음을 삭제하지 못했습니다.";
+		return;
+	}
+	if (loadedRecordingId === recordingId) {
+		recordingEvents.length = 0;
+		loadedRecordingId = null;
+		updateRecorder();
+	}
+	renderSavedRecordings();
+}
+
 document.addEventListener("keydown", (event) => {
 	if (event.ctrlKey && event.code === "KeyS") event.preventDefault();
 }, true);
@@ -271,6 +390,9 @@ document.querySelector("#octave-up").addEventListener("click", () => {
 recordButton.addEventListener("click", toggleRecording);
 playButton.addEventListener("click", togglePlayback);
 clearButton.addEventListener("click", clearRecording);
+saveRecordingButton.addEventListener("click", saveCurrentRecording);
 
+savedRecordings = readSavedRecordings();
+renderSavedRecordings();
 updateOctave();
 updateRecorder();

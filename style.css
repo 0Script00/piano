@@ -110,6 +110,25 @@ h1 span { color: var(--green); }
 .play-icon { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid currentColor; }
 .clear-button { width: 32px; padding: 0; font-size: 18px; }
 .recording-status { color: var(--muted); font-family: "DM Mono", monospace; font-size: 10px; }
+.recording-save-controls { display: flex; gap: 7px; margin: 0 0 12px; }
+.recording-save-controls input { width: min(240px, 55%); min-height: 34px; padding: 0 10px; border: 1px solid #cbc8bf; border-radius: 3px; outline: none; color: var(--ink); background: #faf9f4; font: inherit; font-size: 11px; }
+.recording-save-controls input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #41664f1a; }
+.save-recording-button { border-color: var(--green); color: var(--green); }
+.recording-library { margin-top: 23px; border-top: 1px solid var(--rule); }
+.library-heading { display: flex; align-items: baseline; justify-content: space-between; padding: 15px 0 9px; }
+.library-heading h2 { font-size: 15px; }
+.library-storage-note, .saved-recording-meta { color: var(--muted); font-size: 10px; }
+.saved-recordings { display: grid; }
+.library-empty { margin: 0; padding: 14px 0; color: var(--muted); font-size: 11px; }
+.saved-recording { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid #e1ded6; }
+.saved-recording-details { min-width: 0; display: grid; gap: 4px; }
+.saved-recording-name { overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-recording-meta { font-family: "DM Mono", monospace; font-size: 9px; }
+.saved-recording-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.library-action { min-height: 29px; padding: 0 9px; border: 1px solid #d0cdc4; border-radius: 3px; color: #50554e; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.library-action:hover, .library-action:focus-visible { border-color: var(--green); color: var(--green); }
+.delete-recording:hover, .delete-recording:focus-visible { border-color: var(--coral); color: #a93f2a; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 @keyframes record-pulse { to { opacity: 0.35; } }
 .keyboard {
 	position: relative;
@@ -229,6 +248,9 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.modifier-guide { grid-column: auto; gap: 10px; }
 	.modifier-row { font-size: 11px; }
 	.transport-button { padding: 0 9px; }
+	.saved-recording { gap: 8px; }
+	.saved-recording-meta { font-size: 8px; }
+	.library-action { padding: 0 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
