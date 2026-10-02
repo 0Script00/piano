@@ -18,26 +18,30 @@ const blackKeys = document.querySelector("#black-keys");
 const keyGuide = document.querySelector("#key-guide");
 const octaveValue = document.querySelector("#octave-value");
 const rangeLabel = document.querySelector("#range-label");
+const keyboard = document.querySelector("#keyboard");
 const heldCodes = new Set();
 const activeVoices = new Map();
 const keyElements = new Map();
+const pitchNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 let baseOctave = 4;
 let audioContext;
 
-function createKey(note, index) {
+function createKey(note, midi, whiteIndex) {
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = `piano-key ${note.black ? "black-key" : "white-key"}`;
-	button.dataset.code = note.code;
+	button.dataset.octave = note.octave;
+	button.dataset.midi = midi;
 	button.dataset.note = note.note;
-	button.setAttribute("aria-label", `${note.name}, ${note.key} 키`);
-	button.innerHTML = `<span class="key-note">${note.name}</span><span class="key-letter">${note.key}</span>`;
-	keyElements.set(note.code, button);
+	button.setAttribute("aria-label", `${note.note}${note.octave}`);
+	button.innerHTML = `<span class="key-note">${note.note}</span><span class="key-letter"></span>`;
+	if (note.black) button.style.left = `${((whiteIndex + 0.69) / 52) * 100}%`;
+	keyElements.set(midi, button);
 
 	button.addEventListener("pointerdown", (event) => {
 		event.preventDefault();
 		button.setPointerCapture(event.pointerId);
-		startNote(`pointer-${event.pointerId}`, note, index);
+		startNote(`pointer-${event.pointerId}`, note, midi, button);
 	});
 	button.addEventListener("pointerup", (event) => stopNote(`pointer-${event.pointerId}`));
 	button.addEventListener("pointercancel", (event) => stopNote(`pointer-${event.pointerId}`));
@@ -45,14 +49,23 @@ function createKey(note, index) {
 	return button;
 }
 
-notes.forEach((note, index) => {
-	const button = createKey(note, index);
-	if (note.black) {
-		blackKeys.append(button);
-	} else {
+let whiteIndex = 0;
+for (let midi = 21; midi <= 108; midi += 1) {
+	const pitchClass = midi % 12;
+	const note = {
+		note: pitchNames[pitchClass],
+		octave: Math.floor(midi / 12) - 1,
+		black: [1, 3, 6, 8, 10].includes(pitchClass),
+	};
+	const button = createKey(note, midi, whiteIndex);
+	if (note.black) blackKeys.append(button);
+	else {
 		whiteKeys.append(button);
+		whiteIndex += 1;
 	}
+}
 
+	notes.forEach((note) => {
 	const guide = document.createElement("div");
 	guide.className = "guide-key";
 	guide.innerHTML = `<span class="guide-letter">${note.key}</span><span class="guide-note">${note.name}</span>`;
@@ -74,13 +87,19 @@ function currentOctave() {
 function updateOctave() {
 	const octave = currentOctave();
 	octaveValue.textContent = `C${octave}`;
-	rangeLabel.textContent = `C${octave} — B${octave}`;
+	rangeLabel.textContent = `ACTIVE C${octave}`;
+	for (const [midi, button] of keyElements) {
+		const isCurrentOctave = Number(button.dataset.octave) === octave;
+		button.classList.toggle("is-current-octave", isCurrentOctave);
+		const mappedNote = notes[midi % 12];
+		button.querySelector(".key-letter").textContent = isCurrentOctave && mappedNote ? mappedNote.key : "";
+	}
+	const firstKey = keyElements.get((octave + 1) * 12);
+	if (firstKey) keyboard.scrollLeft = firstKey.offsetLeft + whiteKeys.offsetLeft - keyboard.clientWidth / 2;
 }
 
-function startNote(token, note, index) {
+function startNote(token, note, midi, keyElement = keyElements.get(midi)) {
 	if (activeVoices.has(token)) return;
-	const octave = currentOctave();
-	const midi = (octave + 1) * 12 + index;
 	const frequency = 440 * 2 ** ((midi - 69) / 12);
 	const context = audioContext ??= new AudioContext();
 	if (context.state === "suspended") context.resume();
@@ -102,7 +121,6 @@ function startNote(token, note, index) {
 	fundamental.start(now);
 	overtone.start(now);
 
-	const keyElement = keyElements.get(note.code);
 	keyElement?.classList.add("is-active");
 	activeVoices.set(token, { gain, fundamental, overtone, keyElement });
 }
@@ -132,11 +150,12 @@ document.addEventListener("keydown", (event) => {
 		return;
 	}
 
-	const noteIndex = notes.findIndex((note) => note.code === event.code);
-	if (noteIndex === -1 || event.repeat) return;
+	const note = notes.find((entry) => entry.code === event.code);
+	if (!note || event.repeat) return;
 	event.preventDefault();
 	heldCodes.add(event.code);
-	startNote(`keyboard-${event.code}`, notes[noteIndex], noteIndex);
+	const midi = (currentOctave() + 1) * 12 + notes.indexOf(note);
+	startNote(`keyboard-${event.code}`, note, midi);
 });
 
 document.addEventListener("keyup", (event) => {

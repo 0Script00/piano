@@ -103,6 +103,8 @@ h1 span { color: var(--green); }
 	display: grid;
 	grid-template-columns: 1fr;
 	height: clamp(205px, 27vw, 285px);
+	overflow-x: auto;
+	overflow-y: hidden;
 	padding: 0 10px 10px;
 	border: 1px solid #b7b4aa;
 	border-radius: 5px;
@@ -111,8 +113,8 @@ h1 span { color: var(--green); }
 	touch-action: none;
 	user-select: none;
 }
-.white-keys, .black-keys { position: absolute; inset: 0 10px 10px; }
-.white-keys { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.white-keys, .black-keys { position: absolute; top: 0; bottom: 10px; left: 10px; width: max(calc(100% - 20px), 1456px); }
+.white-keys { display: grid; grid-template-columns: repeat(52, minmax(0, 1fr)); gap: 1px; }
 .piano-key {
 	position: relative;
 	display: flex;
@@ -134,11 +136,13 @@ h1 span { color: var(--green); }
 }
 .white-key:hover { background: #f3f4ec; }
 .white-key.is-active { transform: translateY(3px); background: #e3eadd; box-shadow: 0 1px 0 #c7c4ba; }
+.white-key:not(.is-current-octave) { border-color: #c7c5bd; color: #898a84; background: linear-gradient(180deg, #d8d7d1 0%, #d8d7d1 82%, #c9c8c1 100%); box-shadow: 0 4px 0 #bcbab3; }
+.white-key:not(.is-current-octave):hover { background: #e0dfd9; }
 .black-keys { pointer-events: none; }
 .black-key {
 	position: absolute;
 	top: 0;
-	width: calc(100% / 7 * 0.58);
+	width: calc(100% / 52 * 0.62);
 	height: 61%;
 	padding: 0 0 11px;
 	border: 1px solid #141714;
@@ -150,16 +154,12 @@ h1 span { color: var(--green); }
 	pointer-events: auto;
 	transition: background 90ms ease, transform 90ms ease, box-shadow 90ms ease;
 }
-.black-key:nth-child(1) { left: calc(100% / 7); }
-.black-key:nth-child(2) { left: calc(100% / 7 * 2); }
-.black-key:nth-child(3) { left: calc(100% / 7 * 4); }
-.black-key:nth-child(4) { left: calc(100% / 7 * 5); }
-.black-key:nth-child(5) { left: calc(100% / 7 * 6); }
 .black-key:hover { background: #3e4b3f; }
 .black-key.is-active { transform: translateY(3px); background: #52705a; box-shadow: 0 2px 0 #111411; }
-.key-note { font-size: 14px; font-weight: 700; }
-.key-letter { margin-top: 4px; color: #8f9289; font-family: "DM Mono", monospace; font-size: 10px; }
-.black-key .key-note { font-size: 11px; }
+.black-key:not(.is-current-octave) { border-color: #777972; color: #e0dfd9; background: linear-gradient(90deg, #85877f, #999b93 72%, #777972); box-shadow: 0 5px 0 #696b65, 0 7px 8px #1c201c20; }
+.black-key:not(.is-current-octave):hover { background: #92948c; }
+.key-note { font-size: 10px; font-weight: 700; }
+.key-letter { min-height: 11px; margin-top: 3px; color: var(--green); font-family: "DM Mono", monospace; font-size: 9px; font-weight: 700; }
 .black-key .key-letter { color: #c3c5bd; }
 .keyboard-footer { display: flex; align-items: center; justify-content: space-between; padding: 13px 2px 0; color: var(--muted); font-size: 10px; }
 .footer-mark { color: #656a60; font-family: "DM Mono", monospace; }
@@ -202,13 +202,10 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.octave-stepper output { min-width: 36px; font-size: 16px; }
 	.step-button { width: 30px; height: 30px; }
 	.keyboard { height: 210px; padding-right: 6px; padding-left: 6px; }
-	.white-keys, .black-keys { right: 6px; left: 6px; }
-	.white-keys { gap: 2px; }
+	.white-keys, .black-keys { left: 6px; width: max(calc(100% - 12px), 1456px); }
 	.white-key { padding-bottom: 11px; }
-	.key-note { font-size: 12px; }
-	.key-letter { font-size: 9px; }
-	.black-key { width: calc(100% / 7 * 0.56); }
-	.black-key .key-note { font-size: 9px; }
+	.key-note { font-size: 9px; }
+	.key-letter { font-size: 8px; }
 	.shortcuts { grid-template-columns: 1fr; gap: 17px; padding-top: 24px; }
 	.shortcuts-title { display: flex; align-items: baseline; justify-content: space-between; }
 	.shortcuts-title .eyebrow { margin: 0; }
