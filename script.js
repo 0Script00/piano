@@ -44,6 +44,17 @@ let recordingStartedAt = 0;
 let isRecording = false;
 let isPlaying = false;
 
+function positionBlackKey(button, whiteIndex) {
+	const anchorWhiteKey = whiteKeys.children[whiteIndex];
+	if (!anchorWhiteKey) {
+		button.style.left = `${((whiteIndex + 0.69) / 52) * 100}%`;
+		return;
+	}
+
+	const leftOffset = anchorWhiteKey.offsetLeft + anchorWhiteKey.offsetWidth * 0.68;
+	button.style.left = `${leftOffset}px`;
+}
+
 function createKey(note, midi, whiteIndex) {
 	const button = document.createElement("button");
 	button.type = "button";
@@ -53,7 +64,7 @@ function createKey(note, midi, whiteIndex) {
 	button.dataset.note = note.note;
 	button.setAttribute("aria-label", `${note.note}${note.octave}`);
 	button.innerHTML = `<span class="key-note">${note.note}</span><span class="key-letter"></span>`;
-	if (note.black) button.style.left = `${((whiteIndex + 0.69) / 52) * 100}%`;
+	if (note.black) positionBlackKey(button, whiteIndex);
 	keyElements.set(midi, button);
 
 	button.addEventListener("pointerdown", (event) => {
