@@ -31,6 +31,9 @@ const savedRecordingsElement = document.querySelector("#saved-recordings");
 const instrumentSelect = document.querySelector("#instrument-select");
 const instrumentLabel = document.querySelector("#instrument-label");
 const instrumentHint = document.querySelector("#instrument-hint");
+const fluteControl = document.querySelector("#flute-control");
+const fluteStatus = document.querySelector("#flute-fingering-status");
+const fluteHoleButtons = [...document.querySelectorAll(".flute-hole")];
 const tromboneControl = document.querySelector("#trombone-control");
 const tromboneSlide = document.querySelector("#trombone-slide");
 const tromboneNote = document.querySelector("#trombone-note");
@@ -43,6 +46,8 @@ const heldCodes = new Set();
 const activeVoices = new Map();
 const keyElements = new Map();
 const fingeredNotes = new Map();
+const fluteFingerKeys = new Set();
+const flutePointerKeys = new Set();
 const pitchNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const recordingEvents = [];
 const recordingTokens = new Set();
@@ -67,6 +72,7 @@ let isRecording = false;
 let isPlaying = false;
 let isMixPlaying = false;
 let currentBreathMidi = null;
+let currentFluteMidi = null;
 let trombonePointerDown = false;
 let trackPlaybackTimers = [];
 
@@ -129,7 +135,6 @@ for (let midi = 21; midi <= 108; midi += 1) {
 
 function getOctaveOffset() {
 	if (heldCodes.has("ControlLeft") && heldCodes.has("ShiftLeft")) return 2;
-	if (selectedMode() === "instrument" && selectedInstrument() === "flute" && heldCodes.has("ControlLeft")) return 0;
 	if (heldCodes.has("ControlLeft")) return 1;
 	if (heldCodes.has("ShiftLeft") && heldCodes.has("ShiftRight")) return -2;
 	if (heldCodes.has("ShiftLeft")) return -1;
@@ -162,22 +167,70 @@ function selectedInstrument() {
 	return instrumentSelect.value;
 }
 
+function isFluteInstrumentMode() {
+	return selectedMode() === "instrument" && selectedInstrument() === "flute";
+}
+
+const fluteFingerings = new Map([
+	["KeyA,Period", { note: "미", semitone: 4 }],
+	["KeyD,KeyH,KeyJ,KeyK,KeyS,KeyX", { note: "레", semitone: 2 }],
+]);
+
+function activeFluteKeys() {
+	return new Set([...fluteFingerKeys, ...flutePointerKeys]);
+}
+
+function updateFluteFingering() {
+	const activeKeys = activeFluteKeys();
+	for (const button of fluteHoleButtons) {
+		button.classList.toggle("is-pressed", activeKeys.has(button.dataset.fluteKey));
+	}
+	if (!isFluteInstrumentMode()) return;
+
+	const fingering = fluteFingerings.get([...activeKeys].sort().join(","));
+	if (!fingering) {
+		fluteStatus.textContent = activeKeys.size ? "이 운지는 사진에 표시된 레·미 예시와 다릅니다." : "운지 키를 조합한 뒤 Space를 눌러 숨을 불어주세요.";
+		if (heldCodes.has("Space") && currentFluteMidi !== null) stopFluteBreath();
+		return;
+	}
+
+	fluteStatus.textContent = `${fingering.note} 운지${heldCodes.has("Space") ? " · 숨을 불고 있습니다" : " · Space를 눌러 연주"}`;
+	const midi = (currentOctave() + 1) * 12 + fingering.semitone;
+	if (heldCodes.has("Space")) startFluteBreath(midi);
+}
+
+function startFluteBreath(midi) {
+	if (currentFluteMidi === midi) return;
+	if (currentFluteMidi !== null) stopNote("flute-breath");
+	currentFluteMidi = midi;
+	startNote("flute-breath", { note: pitchNames[midi % 12] }, midi, undefined, { instrument: "flute" });
+}
+
+function stopFluteBreath() {
+	if (currentFluteMidi === null) return;
+	stopNote("flute-breath");
+	currentFluteMidi = null;
+}
+
 function updateInstrumentControls() {
 	const instrument = selectedInstrument();
 	const instrumentMode = selectedMode() === "instrument";
 	instrumentLabel.textContent = instrument.toUpperCase();
+	fluteControl.hidden = !(instrumentMode && instrument === "flute");
+	keyboard.hidden = instrumentMode && instrument === "flute";
 	tromboneControl.hidden = !(instrumentMode && instrument === "trombone");
 	if (!instrumentMode) {
 		instrumentHint.textContent = "건반을 눌러 선택한 악기의 음색으로 연주하세요.";
 	} else if (instrument === "ocarina") {
 		instrumentHint.textContent = "음 키를 누른 채 스페이스를 눌러 숨을 불어 연주하세요.";
 	} else if (instrument === "flute") {
-		instrumentHint.textContent = "건반으로 연주하고 왼쪽 Ctrl을 누르면 더 세게 붑니다.";
+		instrumentHint.textContent = "사진처럼 운지 키를 조합한 뒤 Space를 눌러 연주하세요.";
 	} else if (instrument === "trombone") {
 		instrumentHint.textContent = "슬라이더를 마우스로 누른 채 움직여 음을 이어 연주하세요.";
 	} else {
 		instrumentHint.textContent = "건반을 눌러 실제 악기 음색으로 연주하세요.";
 	}
+	updateFluteFingering();
 }
 
 function updateRecorder() {
@@ -207,7 +260,7 @@ function captureRecordingEvent(type, token, midi) {
 		midi,
 		time: performance.now() - recordingStartedAt,
 		instrument: selectedInstrument(),
-		velocity: heldCodes.has("ControlLeft") && selectedInstrument() === "flute" ? 1.7 : 1,
+		velocity: 1,
 	});
 }
 
@@ -239,7 +292,7 @@ function startNote(token, note, midi, keyElement = keyElements.get(midi), option
 	overtone.frequency.value = frequency * 2.002;
 	const track = mixerTracks.find((entry) => entry.id === options.trackId);
 	const volume = options.volume ?? track?.volume ?? 1;
-	const velocity = options.velocity ?? (instrument === "flute" && heldCodes.has("ControlLeft") ? 1.7 : 1);
+	const velocity = options.velocity ?? 1;
 	const muted = options.muted ?? track?.muted ?? false;
 	const pan = options.pan ?? track?.pan ?? 0;
 	const baseGain = instrument === "organ" ? 0.08 : 0.13;
@@ -296,16 +349,6 @@ function startOcarinaBreath() {
 	if (currentBreathMidi !== null) stopNote("ocarina-breath");
 	currentBreathMidi = finger.midi;
 	startNote("ocarina-breath", finger.note, finger.midi, finger.keyElement, { instrument: "ocarina" });
-}
-
-function setFlutePressure(isPressed) {
-	if (selectedInstrument() !== "flute" || selectedMode() !== "instrument") return;
-	for (const voice of activeVoices.values()) {
-		if (!voice.trackId && voice.instrument === "flute") {
-			const value = voice.baseGain * voice.volume * (isPressed ? 1.7 : 1);
-			voice.gain.gain.setTargetAtTime(value, audioContext.currentTime, 0.04);
-		}
-	}
 }
 
 function setTrombonePitch(midi) {
@@ -722,13 +765,19 @@ document.addEventListener("keydown", (event) => {
 	if (["ControlLeft", "ShiftLeft", "ShiftRight"].includes(event.code)) {
 		heldCodes.add(event.code);
 		updateOctave();
-		if (event.code === "ControlLeft") setFlutePressure(true);
 		return;
 	}
-	if (event.code === "Space" && selectedMode() === "instrument" && selectedInstrument() === "ocarina") {
+	if (event.code === "Space" && selectedMode() === "instrument" && ["ocarina", "flute"].includes(selectedInstrument())) {
 		event.preventDefault();
 		heldCodes.add("Space");
-		startOcarinaBreath();
+		if (selectedInstrument() === "ocarina") startOcarinaBreath();
+		else updateFluteFingering();
+		return;
+	}
+	if (isFluteInstrumentMode() && fluteHoleButtons.some((button) => button.dataset.fluteKey === event.code)) {
+		event.preventDefault();
+		fluteFingerKeys.add(event.code);
+		updateFluteFingering();
 		return;
 	}
 
@@ -743,10 +792,18 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keyup", (event) => {
 	heldCodes.delete(event.code);
 	if (["ControlLeft", "ShiftLeft", "ShiftRight"].includes(event.code)) updateOctave();
-	if (event.code === "ControlLeft") setFlutePressure(false);
+	if (isFluteInstrumentMode() && fluteHoleButtons.some((button) => button.dataset.fluteKey === event.code)) {
+		fluteFingerKeys.delete(event.code);
+		updateFluteFingering();
+		return;
+	}
 	if (event.code === "Space" && currentBreathMidi !== null) {
 		stopNote("ocarina-breath");
 		currentBreathMidi = null;
+	}
+	if (event.code === "Space" && currentFluteMidi !== null) {
+		stopFluteBreath();
+		updateFluteFingering();
 	}
 	if (notes.some((note) => note.code === event.code)) handleNoteRelease(`keyboard-${event.code}`);
 });
@@ -756,9 +813,13 @@ window.addEventListener("blur", () => {
 	for (const finger of fingeredNotes.values()) finger.keyElement?.classList.remove("is-active");
 	heldCodes.clear();
 	fingeredNotes.clear();
+	fluteFingerKeys.clear();
+	flutePointerKeys.clear();
 	currentBreathMidi = null;
+	currentFluteMidi = null;
 	trombonePointerDown = false;
 	updateOctave();
+	updateFluteFingering();
 });
 
 document.querySelector("#octave-down").addEventListener("click", () => {
@@ -790,6 +851,9 @@ instrumentSelect.addEventListener("change", () => {
 	for (const finger of fingeredNotes.values()) finger.keyElement?.classList.remove("is-active");
 	fingeredNotes.clear();
 	currentBreathMidi = null;
+	currentFluteMidi = null;
+	fluteFingerKeys.clear();
+	flutePointerKeys.clear();
 	updateInstrumentControls();
 });
 document.querySelectorAll('input[name="play-mode"]').forEach((input) => {
@@ -798,9 +862,28 @@ document.querySelectorAll('input[name="play-mode"]').forEach((input) => {
 		for (const finger of fingeredNotes.values()) finger.keyElement?.classList.remove("is-active");
 		fingeredNotes.clear();
 		currentBreathMidi = null;
+		currentFluteMidi = null;
+		fluteFingerKeys.clear();
+		flutePointerKeys.clear();
 		updateInstrumentControls();
 	});
 });
+
+for (const button of fluteHoleButtons) {
+	button.addEventListener("pointerdown", (event) => {
+		event.preventDefault();
+		button.setPointerCapture(event.pointerId);
+		flutePointerKeys.add(button.dataset.fluteKey);
+		updateFluteFingering();
+	});
+	const releasePointerKey = () => {
+		flutePointerKeys.delete(button.dataset.fluteKey);
+		updateFluteFingering();
+	};
+	button.addEventListener("pointerup", releasePointerKey);
+	button.addEventListener("pointercancel", releasePointerKey);
+	button.addEventListener("lostpointercapture", releasePointerKey);
+}
 
 tromboneSlide.addEventListener("pointerdown", (event) => {
 	trombonePointerDown = true;

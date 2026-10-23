@@ -60,6 +60,32 @@
 					</fieldset>
 					<p class="instrument-hint" id="instrument-hint" aria-live="polite">건반을 눌러 연주하세요.</p>
 				</div>
+				<section class="flute-control" id="flute-control" aria-label="플루트 운지" hidden>
+					<div class="flute-instructions">
+						<strong>플루트 운지</strong>
+						<span id="flute-fingering-status" aria-live="polite">운지 키를 조합한 뒤 Space를 눌러 숨을 불어주세요.</span>
+					</div>
+					<div class="flute-diagram" aria-label="플루트 운지 키">
+						<div class="flute-tube" aria-hidden="true"></div>
+						<div class="flute-holes">
+							<button type="button" class="flute-hole" data-flute-key="KeyA">A</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyS">S</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyD">D</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyF">F</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyH">H</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyJ">J</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyK">K</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyL">L</button>
+							<button type="button" class="flute-hole" data-flute-key="Semicolon">;</button>
+							<button type="button" class="flute-hole" data-flute-key="KeyX">X</button>
+							<button type="button" class="flute-hole" data-flute-key="Period">.</button>
+						</div>
+					</div>
+					<div class="flute-examples">
+						<span><strong>미</strong> A + . + Space</span>
+						<span><strong>레</strong> S + D + H + J + K + X + Space</span>
+					</div>
+				</section>
 				<div class="piano-toolbar" aria-label="녹음 및 재생">
 					<div class="transport-controls">
 						<button class="transport-button record-button" id="record-toggle" type="button"><span class="record-icon" aria-hidden="true"></span><span id="record-label">녹음</span></button>
@@ -118,8 +144,7 @@
 					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="key-join">+</span><span class="keycap">LShift</span><span class="modifier-arrow">↑↑</span><span>두 옥타브 위</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="modifier-arrow">↓</span><span>한 옥타브 아래</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="key-join">+</span><span class="keycap">RShift</span><span class="modifier-arrow">↓↓</span><span>두 옥타브 아래</span></div>
-					<div class="modifier-row"><span class="keycap">Space</span><span class="modifier-arrow">●</span><span>오카리나 숨 불기</span></div>
-					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="modifier-arrow">↑</span><span>플루트 세게 불기</span></div>
+					<div class="modifier-row"><span class="keycap">Space</span><span class="modifier-arrow">●</span><span>오카리나 / 플루트 숨 불기</span></div>
 					<div class="modifier-row"><span class="keycap">마우스</span><span class="modifier-arrow">↔</span><span>트롬본 슬라이드</span></div>
 				</div>
 			</section>

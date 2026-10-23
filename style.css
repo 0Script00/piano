@@ -107,6 +107,19 @@ h1 span { color: var(--green); }
 .mode-select label { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 .mode-select input { accent-color: var(--green); }
 .instrument-hint { flex: 1 1 220px; margin: 0 0 8px; color: var(--green); font-size: 11px; }
+.keyboard[hidden] { display: none; }
+.flute-control { margin: 7px 0 15px; padding: 18px 20px 14px; border: 1px solid #d3d0c6; border-radius: 5px; background: linear-gradient(180deg, #faf9f4, #f0eee7); }
+.flute-control[hidden] { display: none; }
+.flute-instructions { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.flute-instructions strong { color: var(--green); font-size: 13px; }
+.flute-instructions span { color: var(--muted); font-size: 10px; text-align: right; }
+.flute-diagram { position: relative; min-height: 72px; display: flex; align-items: center; padding: 0 2%; }
+.flute-tube { position: absolute; right: 1%; left: 1%; top: 50%; height: 18px; transform: translateY(-50%); border: 1px solid #969a95; border-radius: 20px; background: linear-gradient(180deg, #fafbf7 0%, #c9ccc6 28%, #f2f3ef 54%, #aeb2ac 100%); box-shadow: 0 2px 3px #24292220; }
+.flute-holes { position: relative; z-index: 1; width: 72%; display: flex; align-items: center; justify-content: space-between; margin-left: 42%; transform: translateX(-50%); }
+.flute-hole { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid #7b807a; border-radius: 50%; color: #484d47; background: radial-gradient(circle at 35% 28%, #fff 0 10%, #d2d5d0 28%, #858b84 60%, #d8dad6 74%); box-shadow: 0 1px 2px #15191470; font: 9px "DM Mono", monospace; cursor: pointer; touch-action: none; user-select: none; }
+.flute-hole.is-pressed { border-color: var(--green); color: #fff; background: radial-gradient(circle at 35% 28%, #78917e, #35513c 68%); box-shadow: 0 0 0 3px #41664f24; transform: translateY(2px); }
+.flute-examples { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 24px; color: #696d65; font-family: "DM Mono", monospace; font-size: 10px; }
+.flute-examples strong { color: var(--green); font-family: "Manrope", sans-serif; }
 .piano-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin-bottom: 10px; }
 .transport-controls { display: flex; align-items: center; gap: 7px; }
 .transport-button { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font-size: 11px; cursor: pointer; transition: background 130ms ease, border-color 130ms ease, color 130ms ease; }
@@ -280,6 +293,13 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.library-action { padding: 0 7px; }
 	.instrument-controls { align-items: flex-start; gap: 9px; }
 	.instrument-hint { flex-basis: 100%; margin: 0; }
+	.flute-control { padding: 14px 10px 12px; }
+	.flute-instructions { align-items: flex-start; flex-direction: column; gap: 4px; margin-bottom: 9px; }
+	.flute-instructions span { text-align: left; }
+	.flute-diagram { min-height: 62px; }
+	.flute-holes { width: 85%; margin-left: 43%; }
+	.flute-hole { width: 24px; height: 24px; font-size: 8px; }
+	.flute-examples { font-size: 9px; }
 	.trombone-control { grid-template-columns: 1fr auto; gap: 8px; }
 	.trombone-control input { grid-column: 1 / -1; grid-row: 2; }
 	.trombone-control > span { grid-column: 1 / -1; }
