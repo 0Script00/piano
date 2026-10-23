@@ -25,7 +25,7 @@
 				<div class="intro-copy">
 					<p class="eyebrow">A LITTLE ROOM TO PLAY</p>
 					<h1 id="title">손끝으로<br /><span>연주해 보세요.</span></h1>
-					<p class="subtitle">키보드나 건반을 눌러 소리를 들어보세요.</p>
+					<p class="subtitle">악기와 연주 모드를 골라 나만의 연주를 만들어 보세요.</p>
 				</div>
 				<div class="octave-control" aria-label="옥타브 조절">
 					<span class="control-label">OCTAVE</span>
@@ -39,8 +39,26 @@
 
 			<section class="piano-section" aria-label="피아노 건반">
 				<div class="keyboard-heading">
-					<span>PIANO · <span id="range-label">ACTIVE C4</span></span>
+					<span><span id="instrument-label">PIANO</span> · <span id="range-label">ACTIVE C4</span></span>
 					<span class="sound-state"><span class="sound-dot"></span> SOUND ON</span>
+				</div>
+				<div class="instrument-controls">
+					<label class="instrument-select-label" for="instrument-select">악기
+						<select id="instrument-select">
+							<option value="piano">피아노</option>
+							<option value="electric">일렉트릭 피아노</option>
+							<option value="organ">오르간</option>
+							<option value="ocarina">오카리나</option>
+							<option value="flute">플루트</option>
+							<option value="trombone">트롬본</option>
+						</select>
+					</label>
+					<fieldset class="mode-select">
+						<legend>연주 모드</legend>
+						<label><input type="radio" name="play-mode" value="keys" checked /> 건반 모드</label>
+						<label><input type="radio" name="play-mode" value="instrument" /> 악기 모드</label>
+					</fieldset>
+					<p class="instrument-hint" id="instrument-hint" aria-live="polite">건반을 눌러 연주하세요.</p>
 				</div>
 				<div class="piano-toolbar" aria-label="녹음 및 재생">
 					<div class="transport-controls">
@@ -54,6 +72,12 @@
 					<label class="sr-only" for="recording-name">녹음 이름</label>
 					<input id="recording-name" type="text" maxlength="40" placeholder="녹음 이름" autocomplete="off" />
 					<button class="transport-button save-recording-button" id="save-recording" type="button" disabled>사이트에 저장</button>
+					<button class="transport-button add-track-button" id="add-mixer-track" type="button" disabled>믹서에 트랙 추가</button>
+				</div>
+				<div class="trombone-control" id="trombone-control" hidden>
+					<label for="trombone-slide">트롬본 슬라이드 <span id="trombone-note">C4</span></label>
+					<input id="trombone-slide" type="range" min="48" max="72" value="60" step="1" />
+					<span>마우스로 누른 채 좌우로 움직여 연주</span>
 				</div>
 				<div class="keyboard" id="keyboard" role="group" aria-label="A0부터 C8까지 가상 피아노">
 					<div class="white-keys" id="white-keys"></div>
@@ -71,6 +95,16 @@
 					</div>
 					<div class="saved-recordings" id="saved-recordings" aria-live="polite"></div>
 				</section>
+				<section class="mixer" aria-labelledby="mixer-title">
+					<div class="library-heading">
+						<h2 id="mixer-title">트랙 믹서</h2>
+						<div class="mixer-actions">
+							<button class="transport-button" id="play-mix" type="button" disabled><span class="play-icon" aria-hidden="true"></span><span id="mix-play-label">믹스 재생</span></button>
+							<button class="transport-button" id="clear-mix" type="button" disabled>믹서 비우기</button>
+						</div>
+					</div>
+					<div class="mixer-tracks" id="mixer-tracks" aria-live="polite"></div>
+				</section>
 			</section>
 
 			<section class="shortcuts" aria-labelledby="shortcuts-title">
@@ -79,11 +113,14 @@
 					<h2 id="shortcuts-title">연주 키</h2>
 				</div>
 				<div class="key-guide" id="key-guide" aria-label="키보드 건반 배치"></div>
-				<div class="modifier-guide" aria-label="옥타브 단축키">
+				<div class="modifier-guide" id="modifier-guide" aria-label="연주 단축키">
 					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="modifier-arrow">↑</span><span>한 옥타브 위</span></div>
 					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="key-join">+</span><span class="keycap">LShift</span><span class="modifier-arrow">↑↑</span><span>두 옥타브 위</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="modifier-arrow">↓</span><span>한 옥타브 아래</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="key-join">+</span><span class="keycap">RShift</span><span class="modifier-arrow">↓↓</span><span>두 옥타브 아래</span></div>
+					<div class="modifier-row"><span class="keycap">Space</span><span class="modifier-arrow">●</span><span>오카리나 숨 불기</span></div>
+					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="modifier-arrow">↑</span><span>플루트 세게 불기</span></div>
+					<div class="modifier-row"><span class="keycap">마우스</span><span class="modifier-arrow">↔</span><span>트롬본 슬라이드</span></div>
 				</div>
 			</section>
 
