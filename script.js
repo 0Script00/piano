@@ -31,6 +31,11 @@ const savedRecordingsElement = document.querySelector("#saved-recordings");
 const instrumentSelect = document.querySelector("#instrument-select");
 const instrumentLabel = document.querySelector("#instrument-label");
 const audioStatus = document.querySelector("#audio-status");
+const addTrackButton = document.querySelector("#add-mixer-track");
+const mixerTracksElement = document.querySelector("#mixer-tracks");
+const playMixButton = document.querySelector("#play-mix");
+const mixPlayLabel = document.querySelector("#mix-play-label");
+const clearMixButton = document.querySelector("#clear-mix");
 const heldCodes = new Set();
 const activeVoices = new Map();
 const keyElements = new Map();
@@ -39,6 +44,7 @@ const recordingEvents = [];
 const recordingTokens = new Set();
 const playbackTimers = [];
 const recordingStorageKey = "key-piano-recordings-v1";
+const mixerStorageKey = "key-piano-mixer-v1";
 const soundfontBaseUrl = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
 const soundfonts = {
 	piano: "acoustic_grand_piano",
@@ -63,12 +69,15 @@ const sampleBufferPromises = new Map();
 const soundfontScripts = new Map();
 let nesWaveCache;
 let savedRecordings = [];
+let mixerTracks = [];
 let loadedRecordingId = null;
 let baseOctave = 4;
 let audioContext;
 let recordingStartedAt = 0;
 let isRecording = false;
 let isPlaying = false;
+let isMixPlaying = false;
+let mixPlaybackTimers = [];
 
 function positionBlackKey(button, whiteIndex) {
 	const anchorWhiteKey = whiteKeys.children[whiteIndex];
@@ -158,12 +167,16 @@ function updateRecorder() {
 	recordButton.classList.toggle("is-recording", isRecording);
 	recordLabel.textContent = isRecording ? "녹음 중지" : "녹음";
 	playLabel.textContent = isPlaying ? "정지" : "재생";
-	recordButton.disabled = isPlaying;
-	playButton.disabled = isRecording || recordingEvents.length === 0;
-	clearButton.disabled = isRecording || isPlaying || recordingEvents.length === 0;
-	saveRecordingButton.disabled = isRecording || isPlaying || recordingEvents.length === 0;
+	recordButton.disabled = isPlaying || isMixPlaying;
+	playButton.disabled = isRecording || isMixPlaying || recordingEvents.length === 0;
+	clearButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
+	saveRecordingButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
+	addTrackButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	const noteCount = recordingEvents.filter((event) => event.type === "on").length;
-	recordingStatus.textContent = isRecording ? "REC · 녹음 중" : noteCount ? `${noteCount}개 음 녹음됨` : "녹음 없음";
+	recordingStatus.textContent = isRecording ? "REC · 녹음 중" : isMixPlaying ? "MIX · 재생 중" : noteCount ? `${noteCount}개 음 녹음됨` : "녹음 없음";
+	playMixButton.disabled = isRecording || isPlaying || mixerTracks.length === 0;
+	mixPlayLabel.textContent = isMixPlaying ? "믹스 정지" : "믹스 재생";
+	clearMixButton.disabled = isMixPlaying || mixerTracks.length === 0;
 }
 
 function captureRecordingEvent(type, token, midi, instrument = instrumentSelect.value) {
@@ -289,28 +302,43 @@ function prepareInstrument(instrument) {
 	});
 }
 
-function startNote(token, note, midi, keyElement = keyElements.get(midi), instrument = instrumentSelect.value) {
+function startNote(token, note, midi, keyElement = keyElements.get(midi), instrument = instrumentSelect.value, trackSettings = null) {
 	if (activeVoices.has(token)) return;
 	captureRecordingEvent("on", token, midi, instrument);
 	const context = getAudioContext();
 	const gain = context.createGain();
-	gain.connect(context.destination);
+	const panner = context.createStereoPanner();
+	panner.connect(context.destination);
+	gain.connect(panner);
 	keyElement?.classList.add("is-active");
-	const voice = { gain, source: null, keyElement, midi, instrument };
+	const voice = {
+		gain,
+		panner,
+		source: null,
+		keyElement,
+		midi,
+		instrument,
+		trackId: trackSettings?.trackId,
+		volume: trackSettings?.volume ?? 1,
+		muted: trackSettings?.muted ?? false,
+		pan: trackSettings?.pan ?? 0,
+		baseGain: nesWaveforms.has(instrument) ? 0.16 : 0.8,
+	};
 	activeVoices.set(token, voice);
+	panner.pan.value = voice.pan;
 	if (nesWaveforms.has(instrument)) {
 		const oscillator = context.createOscillator();
 		oscillator.setPeriodicWave(getNesWaveform(instrument));
 		oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
 		const now = context.currentTime;
 		gain.gain.setValueAtTime(0.0001, now);
-		gain.gain.exponentialRampToValueAtTime(0.16, now + 0.005);
+		gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, voice.muted ? 0 : voice.baseGain * voice.volume), now + 0.005);
 		oscillator.connect(gain);
 		voice.source = oscillator;
 		oscillator.start(now);
 		return;
 	}
-	gain.gain.value = 0.8;
+	gain.gain.value = Math.max(0.0001, voice.muted ? 0 : voice.baseGain * voice.volume);
 	loadSoundfont(instrument).then((samples) => {
 		const [sampleMidi, sampleData] = [...samples.entries()]
 			.sort(([first], [second]) => Math.abs(first - midi) - Math.abs(second - midi))[0] ?? [];
@@ -349,7 +377,7 @@ function stopNote(token) {
 }
 
 function toggleRecording() {
-	if (isPlaying) return;
+	if (isPlaying || isMixPlaying) return;
 	if (isRecording) {
 		const stopTime = performance.now() - recordingStartedAt;
 		for (const token of recordingTokens) {
@@ -382,7 +410,7 @@ function togglePlayback() {
 		stopPlayback();
 		return;
 	}
-	if (isRecording || recordingEvents.length === 0) return;
+	if (isRecording || isMixPlaying || recordingEvents.length === 0) return;
 	isPlaying = true;
 	updateRecorder();
 	for (const event of recordingEvents) {
@@ -400,7 +428,7 @@ function togglePlayback() {
 }
 
 function clearRecording() {
-	if (isRecording || isPlaying) return;
+	if (isRecording || isPlaying || isMixPlaying) return;
 	recordingEvents.length = 0;
 	updateRecorder();
 }
@@ -422,6 +450,216 @@ function readSavedRecordings() {
 	} catch {
 		return [];
 	}
+}
+
+function readMixerTracks() {
+	try {
+		const tracks = JSON.parse(window.localStorage.getItem(mixerStorageKey) || "[]");
+		return Array.isArray(tracks) ? tracks.filter((track) =>
+			typeof track.id === "string" &&
+			typeof track.name === "string" &&
+			instrumentIds.has(track.instrument) &&
+			Number.isFinite(track.volume) &&
+			track.volume >= 0 &&
+			track.volume <= 1 &&
+			Number.isFinite(track.pan) &&
+			track.pan >= -1 &&
+			track.pan <= 1 &&
+			typeof track.muted === "boolean" &&
+			Array.isArray(track.events) &&
+			track.events.length > 0 &&
+			track.events.every((event) =>
+				(event.type === "on" || event.type === "off") &&
+				Number.isFinite(event.midi) &&
+				Number.isFinite(event.time) &&
+				(event.instrument === undefined || instrumentIds.has(event.instrument)),
+			),
+		) : [];
+	} catch (error) {
+		console.error("Could not read mixer tracks", error);
+		return [];
+	}
+}
+
+function persistMixerTracks() {
+	try {
+		window.localStorage.setItem(mixerStorageKey, JSON.stringify(mixerTracks));
+		return true;
+	} catch (error) {
+		console.error("Could not save mixer tracks", error);
+		recordingStatus.textContent = "믹서 트랙을 저장하지 못했습니다.";
+		return false;
+	}
+}
+
+function addMixerTrack() {
+	if (isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0) return;
+	const firstNote = recordingEvents.find((event) => event.type === "on");
+	if (!firstNote) return;
+
+	const track = {
+		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		name: recordingNameInput.value.trim() || `${instrumentSelect.selectedOptions[0].textContent} 트랙 ${mixerTracks.length + 1}`,
+		instrument: firstNote.instrument ?? instrumentSelect.value,
+		volume: 1,
+		pan: 0,
+		muted: false,
+		events: recordingEvents.map((event) => ({ ...event })),
+	};
+	mixerTracks.push(track);
+	if (!persistMixerTracks()) {
+		mixerTracks.pop();
+		return;
+	}
+	recordingNameInput.value = "";
+	renderMixerTracks();
+}
+
+function updateTrackVoices(track) {
+	if (!audioContext) return;
+	for (const voice of activeVoices.values()) {
+		if (voice.trackId !== track.id) continue;
+		voice.volume = track.volume;
+		voice.muted = track.muted;
+		voice.pan = track.pan;
+		const gain = Math.max(0.0001, voice.muted ? 0 : voice.baseGain * voice.volume);
+		voice.gain.gain.setTargetAtTime(gain, audioContext.currentTime, 0.025);
+		voice.panner.pan.setTargetAtTime(voice.pan, audioContext.currentTime, 0.025);
+	}
+}
+
+function renderMixerTracks() {
+	mixerTracksElement.replaceChildren();
+	if (mixerTracks.length === 0) {
+		const emptyState = document.createElement("p");
+		emptyState.className = "library-empty";
+		emptyState.textContent = "녹음을 믹서에 추가해 트랙을 쌓아 보세요.";
+		mixerTracksElement.append(emptyState);
+		updateRecorder();
+		return;
+	}
+
+	for (const track of mixerTracks) {
+		const row = document.createElement("article");
+		row.className = "mixer-track";
+		const name = document.createElement("strong");
+		name.className = "mixer-track-name";
+		name.textContent = track.name;
+		const instrument = document.createElement("span");
+		instrument.className = "mixer-track-instrument";
+		instrument.textContent = track.instrument.replaceAll("-", " ");
+
+		const volumeLabel = document.createElement("label");
+		volumeLabel.className = "mixer-control";
+		volumeLabel.append(document.createTextNode("음량"));
+		const volume = document.createElement("input");
+		volume.type = "range";
+		volume.min = "0";
+		volume.max = "1";
+		volume.step = "0.01";
+		volume.value = String(track.volume);
+		volume.setAttribute("aria-label", `${track.name} 음량`);
+		volumeLabel.append(volume);
+
+		const panLabel = document.createElement("label");
+		panLabel.className = "mixer-control";
+		panLabel.append(document.createTextNode("좌우"));
+		const pan = document.createElement("input");
+		pan.type = "range";
+		pan.min = "-1";
+		pan.max = "1";
+		pan.step = "0.01";
+		pan.value = String(track.pan);
+		pan.setAttribute("aria-label", `${track.name} 좌우 밸런스`);
+		panLabel.append(pan);
+
+		const muteLabel = document.createElement("label");
+		muteLabel.className = "mixer-mute";
+		const mute = document.createElement("input");
+		mute.type = "checkbox";
+		mute.checked = track.muted;
+		mute.setAttribute("aria-label", `${track.name} 음소거`);
+		muteLabel.append(mute, document.createTextNode("음소거"));
+
+		const remove = document.createElement("button");
+		remove.type = "button";
+		remove.className = "library-action delete-recording";
+		remove.textContent = "삭제";
+		remove.setAttribute("aria-label", `${track.name} 믹서에서 삭제`);
+		volume.addEventListener("input", () => {
+			track.volume = Number(volume.value);
+			updateTrackVoices(track);
+			persistMixerTracks();
+		});
+		pan.addEventListener("input", () => {
+			track.pan = Number(pan.value);
+			updateTrackVoices(track);
+			persistMixerTracks();
+		});
+		mute.addEventListener("change", () => {
+			track.muted = mute.checked;
+			updateTrackVoices(track);
+			persistMixerTracks();
+		});
+		remove.addEventListener("click", () => removeMixerTrack(track.id));
+
+		row.append(name, instrument, volumeLabel, panLabel, muteLabel, remove);
+		mixerTracksElement.append(row);
+	}
+	updateRecorder();
+}
+
+function removeMixerTrack(trackId) {
+	if (isMixPlaying) stopMixPlayback();
+	const previousTracks = mixerTracks;
+	mixerTracks = mixerTracks.filter((track) => track.id !== trackId);
+	if (!persistMixerTracks()) {
+		mixerTracks = previousTracks;
+		return;
+	}
+	renderMixerTracks();
+}
+
+function stopMixPlayback() {
+	for (const timer of mixPlaybackTimers) window.clearTimeout(timer);
+	mixPlaybackTimers = [];
+	for (const token of activeVoices.keys()) {
+		if (token.startsWith("mix-")) stopNote(token);
+	}
+	isMixPlaying = false;
+	updateRecorder();
+}
+
+function toggleMixPlayback() {
+	if (isMixPlaying) {
+		stopMixPlayback();
+		return;
+	}
+	if (isRecording || isPlaying || mixerTracks.length === 0) return;
+	isMixPlaying = true;
+	updateRecorder();
+
+	for (const track of mixerTracks) {
+		for (const event of track.events) {
+			const timer = window.setTimeout(() => {
+				const token = `mix-${track.id}-${event.token}`;
+				if (event.type === "on") {
+					startNote(token, { note: pitchNames[event.midi % 12] }, event.midi, null, event.instrument ?? track.instrument, {
+						trackId: track.id,
+						volume: track.volume,
+						pan: track.pan,
+						muted: track.muted,
+					});
+				} else {
+					stopNote(token);
+				}
+			}, event.time);
+			mixPlaybackTimers.push(timer);
+		}
+	}
+
+	const duration = Math.max(...mixerTracks.flatMap((track) => track.events.map((event) => event.time)));
+	mixPlaybackTimers.push(window.setTimeout(stopMixPlayback, duration + 300));
 }
 
 function renderSavedRecordings() {
@@ -469,7 +707,7 @@ function renderSavedRecordings() {
 }
 
 function saveCurrentRecording() {
-	if (isRecording || isPlaying || recordingEvents.length === 0) return;
+	if (isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0) return;
 	const name = recordingNameInput.value.trim() || `녹음 ${new Date().toLocaleString("ko-KR")}`;
 	const recording = {
 		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -493,7 +731,7 @@ function saveCurrentRecording() {
 }
 
 function loadSavedRecording(recording) {
-	if (isRecording || isPlaying) return;
+	if (isRecording || isPlaying || isMixPlaying) return;
 	recordingEvents.splice(0, recordingEvents.length, ...recording.events.map((event) => ({ ...event })));
 	loadedRecordingId = recording.id;
 	recordingStatus.textContent = `${recording.name} 불러옴`;
@@ -519,6 +757,17 @@ function deleteSavedRecording(recordingId) {
 }
 
 window.addEventListener("keydown", (event) => {
+	const target = event.target;
+	const isTextInput = target instanceof HTMLElement &&
+		(target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+	const octaveKey = /^(?:Digit|Numpad)([1-7])$/.exec(event.code);
+	if (octaveKey && !event.ctrlKey && !event.altKey && !event.metaKey && !isTextInput) {
+		event.preventDefault();
+		baseOctave = Number(octaveKey[1]);
+		updateOctave();
+		return;
+	}
+
 	const note = notes.find((entry) => entry.code === event.code);
 	const isCtrlNote = event.ctrlKey && note;
 	if (isCtrlNote) {
@@ -565,9 +814,20 @@ recordButton.addEventListener("click", toggleRecording);
 playButton.addEventListener("click", togglePlayback);
 clearButton.addEventListener("click", clearRecording);
 saveRecordingButton.addEventListener("click", saveCurrentRecording);
+addTrackButton.addEventListener("click", addMixerTrack);
+playMixButton.addEventListener("click", toggleMixPlayback);
+clearMixButton.addEventListener("click", () => {
+	if (isMixPlaying) return;
+	const previousTracks = mixerTracks;
+	mixerTracks = [];
+	if (!persistMixerTracks()) mixerTracks = previousTracks;
+	renderMixerTracks();
+});
 
 savedRecordings = readSavedRecordings();
 renderSavedRecordings();
+mixerTracks = readMixerTracks();
+renderMixerTracks();
 instrumentSelect.addEventListener("change", () => {
 	instrumentLabel.textContent = instrumentSelect.selectedOptions[0].textContent;
 	prepareInstrument(instrumentSelect.value);
