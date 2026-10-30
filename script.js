@@ -34,6 +34,7 @@ const instrumentHint = document.querySelector("#instrument-hint");
 const fluteControl = document.querySelector("#flute-control");
 const fluteStatus = document.querySelector("#flute-fingering-status");
 const fluteHoleButtons = [...document.querySelectorAll(".flute-hole")];
+const fluteReferenceElement = document.querySelector("#flute-reference-registers");
 const tromboneControl = document.querySelector("#trombone-control");
 const tromboneSlide = document.querySelector("#trombone-slide");
 const tromboneNote = document.querySelector("#trombone-note");
@@ -134,6 +135,7 @@ for (let midi = 21; midi <= 108; midi += 1) {
 });
 
 function getOctaveOffset() {
+	if (isFluteInstrumentMode()) return heldCodes.has("ControlLeft") ? 1 : 0;
 	if (heldCodes.has("ControlLeft") && heldCodes.has("ShiftLeft")) return 2;
 	if (heldCodes.has("ControlLeft")) return 1;
 	if (heldCodes.has("ShiftLeft") && heldCodes.has("ShiftRight")) return -2;
@@ -157,6 +159,7 @@ function updateOctave() {
 	}
 	const firstKey = keyElements.get((octave + 1) * 12);
 	if (firstKey) keyboard.scrollLeft = firstKey.offsetLeft + whiteKeys.offsetLeft - keyboard.clientWidth / 2;
+	updateFluteFingering();
 }
 
 function selectedMode() {
@@ -172,9 +175,31 @@ function isFluteInstrumentMode() {
 }
 
 const fluteFingerings = new Map([
-	["KeyA,Period", { note: "미", semitone: 4 }],
-	["KeyD,KeyH,KeyJ,KeyK,KeyS,KeyX", { note: "레", semitone: 2 }],
-]);
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyF", "KeyH", "KeyJ", "KeyK", "KeyL", "KeyS", "KeyX", "Period", "Semicolon"], note: "B", semitone: -1 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyF", "KeyH", "KeyJ", "KeyK", "KeyL", "KeyS", "KeyX", "Semicolon"], note: "C", semitone: 0 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyF", "KeyH", "KeyJ", "KeyK", "KeyL", "KeyS", "KeyX"], note: "C#/Db", semitone: 1 },
+	{ register: "low", keys: ["KeyD", "KeyH", "KeyJ", "KeyK", "KeyS", "KeyX"], note: "D", semitone: 2 },
+	{ register: "low", keys: ["KeyD", "KeyH", "KeyJ", "KeyK", "KeyL", "KeyS", "KeyX"], note: "D#/Eb", semitone: 3 },
+	{ register: "low", keys: ["KeyA", "Period"], note: "E", semitone: 4 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyF", "KeyH", "KeyJ", "KeyK", "KeyS"], note: "F", semitone: 5 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyF", "KeyH", "KeyJ", "KeyS"], note: "F#/Gb", semitone: 6 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyS"], note: "G", semitone: 7 },
+	{ register: "low", keys: ["KeyA", "KeyD", "KeyL", "KeyS"], note: "G#/Ab", semitone: 8 },
+	{ register: "low", keys: ["KeyA", "KeyS"], note: "A", semitone: 9 },
+	{ register: "low", keys: ["KeyA"], note: "A#/Bb", semitone: 10 },
+	{ register: "high", keys: ["KeyA", "KeyX"], note: "B", semitone: -1 },
+	{ register: "high", keys: ["KeyA"], note: "C", semitone: 0 },
+	{ register: "high", keys: ["KeyX"], note: "C#/Db", semitone: 1 },
+	{ register: "high", keys: ["KeyD", "KeyH", "KeyJ", "KeyK", "KeyS"], note: "D", semitone: 2 },
+	{ register: "high", keys: ["KeyD", "KeyH", "KeyJ", "KeyK", "KeyL", "KeyS"], note: "D#/Eb", semitone: 3 },
+	{ register: "high", keys: ["KeyA", "KeyD", "KeyH", "KeyJ", "KeyS"], note: "E", semitone: 4 },
+	{ register: "high", keys: ["KeyA", "KeyD", "KeyH", "KeyS"], note: "F", semitone: 5 },
+	{ register: "high", keys: ["KeyA", "KeyD", "KeyS"], note: "F#/Gb", semitone: 6 },
+	{ register: "high", keys: ["KeyA", "KeyS"], note: "G", semitone: 7 },
+	{ register: "high", keys: ["KeyA", "KeyL"], note: "G#/Ab", semitone: 8 },
+	{ register: "high", keys: ["KeyA", "KeyJ"], note: "A", semitone: 9 },
+	{ register: "high", keys: ["KeyS"], note: "A#/Bb", semitone: 10 },
+].map((fingering) => [`${fingering.register}:${fingering.keys.sort().join(",")}`, fingering]));
 
 function activeFluteKeys() {
 	return new Set([...fluteFingerKeys, ...flutePointerKeys]);
@@ -187,14 +212,16 @@ function updateFluteFingering() {
 	}
 	if (!isFluteInstrumentMode()) return;
 
-	const fingering = fluteFingerings.get([...activeKeys].sort().join(","));
+	const register = heldCodes.has("ControlLeft") ? "high" : "low";
+	const fingering = fluteFingerings.get(`${register}:${[...activeKeys].sort().join(",")}`);
 	if (!fingering) {
-		fluteStatus.textContent = activeKeys.size ? "이 운지는 사진에 표시된 레·미 예시와 다릅니다." : "운지 키를 조합한 뒤 Space를 눌러 숨을 불어주세요.";
+		fluteStatus.textContent = activeKeys.size ? "표에 없는 운지입니다. 검은 구멍 조합을 확인하세요." : "검은 구멍에 해당하는 키를 누른 뒤 Space를 불어주세요. Ctrl은 높은 음역입니다.";
 		if (heldCodes.has("Space") && currentFluteMidi !== null) stopFluteBreath();
 		return;
 	}
 
-	fluteStatus.textContent = `${fingering.note} 운지${heldCodes.has("Space") ? " · 숨을 불고 있습니다" : " · Space를 눌러 연주"}`;
+	const octave = currentOctave() + (fingering.semitone < 0 ? -1 : 0);
+	fluteStatus.textContent = `${fingering.note}${octave} · ${register === "low" ? "낮은 음역" : "높은 음역"}${heldCodes.has("Space") ? " · 숨을 불고 있습니다" : " · Space를 눌러 연주"}`;
 	const midi = (currentOctave() + 1) * 12 + fingering.semitone;
 	if (heldCodes.has("Space")) startFluteBreath(midi);
 }
@@ -224,13 +251,40 @@ function updateInstrumentControls() {
 	} else if (instrument === "ocarina") {
 		instrumentHint.textContent = "음 키를 누른 채 스페이스를 눌러 숨을 불어 연주하세요.";
 	} else if (instrument === "flute") {
-		instrumentHint.textContent = "사진처럼 운지 키를 조합한 뒤 Space를 눌러 연주하세요.";
+		instrumentHint.textContent = "표의 운지 키 조합 후 Space로 숨을 불고, Ctrl을 눌러 높은 음역을 선택하세요.";
 	} else if (instrument === "trombone") {
 		instrumentHint.textContent = "슬라이더를 마우스로 누른 채 움직여 음을 이어 연주하세요.";
 	} else {
 		instrumentHint.textContent = "건반을 눌러 실제 악기 음색으로 연주하세요.";
 	}
 	updateFluteFingering();
+}
+
+function renderFluteReference() {
+	fluteReferenceElement.replaceChildren();
+	for (const [register, title] of [["low", "낮은 음역 · B3–Bb4"], ["high", "높은 음역 · B4–Bb5 (Ctrl)"]]) {
+		const group = document.createElement("section");
+		group.className = "flute-reference-group";
+		const heading = document.createElement("strong");
+		heading.textContent = title;
+		const list = document.createElement("div");
+		list.className = "flute-reference-list";
+		for (const [, fingering] of fluteFingerings) {
+			if (fingering.register !== register) continue;
+			const row = document.createElement("div");
+			row.className = "flute-reference-row";
+			const note = document.createElement("strong");
+			note.textContent = fingering.note;
+			const keys = document.createElement("span");
+			keys.textContent = fingering.keys.map((code) =>
+				fluteHoleButtons.find((button) => button.dataset.fluteKey === code)?.textContent ?? code,
+			).join(" + ");
+			row.append(note, keys);
+			list.append(row);
+		}
+		group.append(heading, list);
+		fluteReferenceElement.append(group);
+	}
 }
 
 function updateRecorder() {
@@ -908,6 +962,7 @@ savedRecordings = readSavedRecordings();
 renderSavedRecordings();
 mixerTracks = readMixerTracks();
 renderMixerTracks();
+renderFluteReference();
 updateOctave();
 updateInstrumentControls();
 updateRecorder();
