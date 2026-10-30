@@ -25,7 +25,7 @@
 				<div class="intro-copy">
 					<p class="eyebrow">A LITTLE ROOM TO PLAY</p>
 					<h1 id="title">손끝으로<br /><span>연주해 보세요.</span></h1>
-					<p class="subtitle">악기와 연주 모드를 골라 나만의 연주를 만들어 보세요.</p>
+					<p class="subtitle">좋아하는 악기를 골라 건반으로 연주해 보세요.</p>
 				</div>
 				<div class="octave-control" aria-label="옥타브 조절">
 					<span class="control-label">OCTAVE</span>
@@ -40,11 +40,11 @@
 			<section class="piano-section" aria-label="피아노 건반">
 				<div class="keyboard-heading">
 					<span><span id="instrument-label">PIANO</span> · <span id="range-label">ACTIVE C4</span></span>
-					<span class="sound-state"><span class="sound-dot"></span> SOUND ON</span>
+					<span class="sound-state"><span class="sound-dot"></span><span id="audio-status" role="status" aria-live="polite">실제 악기 음원 준비 중</span></span>
 				</div>
 				<div class="instrument-controls">
 					<label class="instrument-select-label" for="instrument-select">악기
-						<select id="instrument-select">
+						<select id="instrument-select" aria-label="연주할 악기">
 							<option value="piano">피아노</option>
 							<option value="electric">일렉트릭 피아노</option>
 							<option value="organ">오르간</option>
@@ -53,43 +53,8 @@
 							<option value="trombone">트롬본</option>
 						</select>
 					</label>
-					<fieldset class="mode-select">
-						<legend>연주 모드</legend>
-						<label><input type="radio" name="play-mode" value="keys" checked /> 건반 모드</label>
-						<label><input type="radio" name="play-mode" value="instrument" /> 악기 모드</label>
-					</fieldset>
-					<p class="instrument-hint" id="instrument-hint" aria-live="polite">건반을 눌러 연주하세요.</p>
+					<span class="sample-credit">실제 샘플: <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">FluidR3 GM</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a></span>
 				</div>
-				<section class="flute-control" id="flute-control" aria-label="플루트 운지" hidden>
-					<div class="flute-instructions">
-						<strong>플루트 운지</strong>
-						<span id="flute-fingering-status" aria-live="polite">운지 키를 조합한 뒤 Space를 눌러 숨을 불어주세요.</span>
-					</div>
-					<div class="flute-diagram" aria-label="플루트 운지 키">
-						<div class="flute-tube" aria-hidden="true"></div>
-						<div class="flute-holes">
-							<button type="button" class="flute-hole" data-flute-key="KeyA">A</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyS">S</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyD">D</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyF">F</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyH">H</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyJ">J</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyK">K</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyL">L</button>
-							<button type="button" class="flute-hole" data-flute-key="Semicolon">;</button>
-							<button type="button" class="flute-hole" data-flute-key="KeyX">X</button>
-							<button type="button" class="flute-hole" data-flute-key="Period">.</button>
-						</div>
-					</div>
-					<div class="flute-examples">
-						<span><strong>낮은 음역</strong> B3–Bb4</span>
-						<span><strong>높은 음역</strong> Ctrl + B4–Bb5</span>
-					</div>
-					<details class="flute-reference">
-						<summary>전체 운지 키 조합 보기</summary>
-						<div class="flute-reference-registers" id="flute-reference-registers"></div>
-					</details>
-				</section>
 				<div class="piano-toolbar" aria-label="녹음 및 재생">
 					<div class="transport-controls">
 						<button class="transport-button record-button" id="record-toggle" type="button"><span class="record-icon" aria-hidden="true"></span><span id="record-label">녹음</span></button>
@@ -103,11 +68,6 @@
 					<input id="recording-name" type="text" maxlength="40" placeholder="녹음 이름" autocomplete="off" />
 					<button class="transport-button save-recording-button" id="save-recording" type="button" disabled>사이트에 저장</button>
 					<button class="transport-button add-track-button" id="add-mixer-track" type="button" disabled>믹서에 트랙 추가</button>
-				</div>
-				<div class="trombone-control" id="trombone-control" hidden>
-					<label for="trombone-slide">트롬본 슬라이드 <span id="trombone-note">C4</span></label>
-					<input id="trombone-slide" type="range" min="48" max="72" value="60" step="1" />
-					<span>마우스로 누른 채 좌우로 움직여 연주</span>
 				</div>
 				<div class="keyboard" id="keyboard" role="group" aria-label="A0부터 C8까지 가상 피아노">
 					<div class="white-keys" id="white-keys"></div>
@@ -148,8 +108,6 @@
 					<div class="modifier-row"><span class="keycap">LCtrl</span><span class="key-join">+</span><span class="keycap">LShift</span><span class="modifier-arrow">↑↑</span><span>두 옥타브 위</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="modifier-arrow">↓</span><span>한 옥타브 아래</span></div>
 					<div class="modifier-row"><span class="keycap">LShift</span><span class="key-join">+</span><span class="keycap">RShift</span><span class="modifier-arrow">↓↓</span><span>두 옥타브 아래</span></div>
-					<div class="modifier-row"><span class="keycap">Space</span><span class="modifier-arrow">●</span><span>오카리나 / 플루트 숨 불기</span></div>
-					<div class="modifier-row"><span class="keycap">마우스</span><span class="modifier-arrow">↔</span><span>트롬본 슬라이드</span></div>
 				</div>
 			</section>
 

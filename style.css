@@ -102,32 +102,8 @@ h1 span { color: var(--green); }
 .instrument-select-label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
 .instrument-select-label select { min-height: 34px; min-width: 155px; padding: 0 28px 0 9px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font: inherit; font-size: 11px; }
 .instrument-select-label select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-.mode-select { display: flex; align-items: center; gap: 12px; min-height: 34px; margin: 0; padding: 4px 10px 5px; border: 1px solid #d3d0c6; border-radius: 3px; color: #50554e; font-size: 10px; }
-.mode-select legend { padding: 0 4px; color: var(--muted); font-size: 9px; }
-.mode-select label { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-.mode-select input { accent-color: var(--green); }
-.instrument-hint { flex: 1 1 220px; margin: 0 0 8px; color: var(--green); font-size: 11px; }
-.keyboard[hidden] { display: none; }
-.flute-control { margin: 7px 0 15px; padding: 18px 20px 14px; border: 1px solid #d3d0c6; border-radius: 5px; background: linear-gradient(180deg, #faf9f4, #f0eee7); }
-.flute-control[hidden] { display: none; }
-.flute-instructions { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
-.flute-instructions strong { color: var(--green); font-size: 13px; }
-.flute-instructions span { color: var(--muted); font-size: 10px; text-align: right; }
-.flute-diagram { position: relative; min-height: 72px; display: flex; align-items: center; padding: 0 2%; }
-.flute-tube { position: absolute; right: 1%; left: 1%; top: 50%; height: 18px; transform: translateY(-50%); border: 1px solid #969a95; border-radius: 20px; background: linear-gradient(180deg, #fafbf7 0%, #c9ccc6 28%, #f2f3ef 54%, #aeb2ac 100%); box-shadow: 0 2px 3px #24292220; }
-.flute-holes { position: relative; z-index: 1; width: 72%; display: flex; align-items: center; justify-content: space-between; margin-left: 42%; transform: translateX(-50%); }
-.flute-hole { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid #7b807a; border-radius: 50%; color: #484d47; background: radial-gradient(circle at 35% 28%, #fff 0 10%, #d2d5d0 28%, #858b84 60%, #d8dad6 74%); box-shadow: 0 1px 2px #15191470; font: 9px "DM Mono", monospace; cursor: pointer; touch-action: none; user-select: none; }
-.flute-hole.is-pressed { border-color: var(--green); color: #fff; background: radial-gradient(circle at 35% 28%, #78917e, #35513c 68%); box-shadow: 0 0 0 3px #41664f24; transform: translateY(2px); }
-.flute-examples { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 24px; color: #696d65; font-family: "DM Mono", monospace; font-size: 10px; }
-.flute-examples strong { color: var(--green); font-family: "Manrope", sans-serif; }
-.flute-reference { margin-top: 12px; border-top: 1px solid #d8d5cc; color: #555a52; font-size: 10px; }
-.flute-reference summary { width: fit-content; padding-top: 9px; color: var(--green); cursor: pointer; }
-.flute-reference-registers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 10px; }
-.flute-reference-group > strong { display: block; margin-bottom: 5px; color: var(--ink); }
-.flute-reference-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; }
-.flute-reference-row { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.flute-reference-row > strong { flex: 0 0 42px; color: var(--green); }
-.flute-reference-row > span { overflow-wrap: anywhere; color: #696d65; font-family: "DM Mono", monospace; font-size: 9px; }
+.sample-credit { align-self: center; color: var(--muted); font-size: 9px; }
+.sample-credit a { color: var(--green); }
 .piano-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin-bottom: 10px; }
 .transport-controls { display: flex; align-items: center; gap: 7px; }
 .transport-button { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font-size: 11px; cursor: pointer; transition: background 130ms ease, border-color 130ms ease, color 130ms ease; }
@@ -145,12 +121,6 @@ h1 span { color: var(--green); }
 .recording-save-controls input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #41664f1a; }
 .save-recording-button { border-color: var(--green); color: var(--green); }
 .add-track-button { border-color: #9a8a68; color: #695c40; }
-.trombone-control { display: grid; grid-template-columns: 1fr minmax(180px, 45%) auto; align-items: center; gap: 12px; margin: 0 0 13px; padding: 11px 12px; border: 1px solid #d3d0c6; border-radius: 3px; background: #f8f6f0a6; color: #50554e; font-size: 10px; }
-.trombone-control[hidden] { display: none; }
-.trombone-control label { font-weight: 700; }
-.trombone-control label span { margin-left: 7px; color: var(--green); font-family: "DM Mono", monospace; }
-.trombone-control input { width: 100%; accent-color: var(--green); touch-action: none; }
-.trombone-control > span { color: var(--muted); }
 .recording-library { margin-top: 23px; border-top: 1px solid var(--rule); }
 .library-heading { display: flex; align-items: baseline; justify-content: space-between; padding: 15px 0 9px; }
 .library-heading h2 { font-size: 15px; }
@@ -300,19 +270,7 @@ h2 { margin: 0; font-size: 19px; font-weight: 700; }
 	.saved-recording-meta { font-size: 8px; }
 	.library-action { padding: 0 7px; }
 	.instrument-controls { align-items: flex-start; gap: 9px; }
-	.instrument-hint { flex-basis: 100%; margin: 0; }
-	.flute-control { padding: 14px 10px 12px; }
-	.flute-instructions { align-items: flex-start; flex-direction: column; gap: 4px; margin-bottom: 9px; }
-	.flute-instructions span { text-align: left; }
-	.flute-diagram { min-height: 62px; }
-	.flute-holes { width: 85%; margin-left: 43%; }
-	.flute-hole { width: 24px; height: 24px; font-size: 8px; }
-	.flute-examples { font-size: 9px; }
-	.flute-reference-registers { grid-template-columns: 1fr; }
-	.flute-reference-list { grid-template-columns: 1fr 1fr; }
-	.trombone-control { grid-template-columns: 1fr auto; gap: 8px; }
-	.trombone-control input { grid-column: 1 / -1; grid-row: 2; }
-	.trombone-control > span { grid-column: 1 / -1; }
+	.sample-credit { flex-basis: 100%; }
 	.mixer-track { grid-template-columns: 1fr 1fr auto; gap: 8px; }
 	.mixer-track-name { grid-column: 1; }
 	.mixer-track-instrument { grid-column: 2; }
