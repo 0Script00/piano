@@ -73,6 +73,8 @@ let mixerTracks = [];
 let loadedRecordingId = null;
 let baseOctave = 4;
 let audioContext;
+let masterGain;
+let outputLimiter;
 let recordingStartedAt = 0;
 let isRecording = false;
 let isPlaying = false;
@@ -189,6 +191,18 @@ function captureRecordingEvent(type, token, midi, instrument = instrumentSelect.
 
 function getAudioContext() {
 	audioContext ??= new AudioContext();
+	if (!masterGain) {
+		masterGain = audioContext.createGain();
+		masterGain.gain.value = 1.5;
+		outputLimiter = audioContext.createDynamicsCompressor();
+		outputLimiter.threshold.value = -1;
+		outputLimiter.knee.value = 0;
+		outputLimiter.ratio.value = 12;
+		outputLimiter.attack.value = 0.003;
+		outputLimiter.release.value = 0.18;
+		masterGain.connect(outputLimiter);
+		outputLimiter.connect(audioContext.destination);
+	}
 	if (audioContext.state === "suspended") audioContext.resume();
 	return audioContext;
 }
@@ -308,7 +322,7 @@ function startNote(token, note, midi, keyElement = keyElements.get(midi), instru
 	const context = getAudioContext();
 	const gain = context.createGain();
 	const panner = context.createStereoPanner();
-	panner.connect(context.destination);
+	panner.connect(masterGain);
 	gain.connect(panner);
 	keyElement?.classList.add("is-active");
 	const voice = {
@@ -322,7 +336,7 @@ function startNote(token, note, midi, keyElement = keyElements.get(midi), instru
 		volume: trackSettings?.volume ?? 1,
 		muted: trackSettings?.muted ?? false,
 		pan: trackSettings?.pan ?? 0,
-		baseGain: nesWaveforms.has(instrument) ? 0.16 : 0.8,
+		baseGain: nesWaveforms.has(instrument) ? 0.28 : 0.8,
 	};
 	activeVoices.set(token, voice);
 	panner.pan.value = voice.pan;
