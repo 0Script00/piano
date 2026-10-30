@@ -47,10 +47,21 @@ const soundfonts = {
 	ocarina: "ocarina",
 	flute: "flute",
 	trombone: "trombone",
+	violin: "violin",
+	cello: "cello",
+	harmonica: "harmonica",
+	"french-horn": "french_horn",
+	harp: "orchestral_harp",
 };
+const nesWaveforms = new Map([
+	["nes-square", 0.25],
+	["nes-triangle", "triangle"],
+]);
+const instrumentIds = new Set([...Object.keys(soundfonts), ...nesWaveforms.keys()]);
 const soundfontPromises = new Map();
 const sampleBufferPromises = new Map();
 const soundfontScripts = new Map();
+let nesWaveCache;
 let savedRecordings = [];
 let loadedRecordingId = null;
 let baseOctave = 4;
@@ -168,6 +179,35 @@ function getAudioContext() {
 	return audioContext;
 }
 
+function createNesWave(samples) {
+	const real = new Float32Array(samples.length / 2 + 1);
+	const imaginary = new Float32Array(samples.length / 2 + 1);
+	for (let harmonic = 1; harmonic < real.length; harmonic += 1) {
+		for (let index = 0; index < samples.length; index += 1) {
+			const phase = (2 * Math.PI * harmonic * index) / samples.length;
+			real[harmonic] += (2 / samples.length) * samples[index] * Math.cos(phase);
+			imaginary[harmonic] += (2 / samples.length) * samples[index] * Math.sin(phase);
+		}
+	}
+	return getAudioContext().createPeriodicWave(real, imaginary);
+}
+
+function getNesWaveform(instrument) {
+	if (!nesWaveCache) {
+		const squareDuty = nesWaveforms.get("nes-square");
+		const squareSamples = Array.from({ length: 32 }, (_, index) => index < 32 * squareDuty ? 1 : -1);
+		const triangleSamples = Array.from({ length: 32 }, (_, index) => {
+			const step = index % 32;
+			return step < 16 ? 1 - step / 8 : -1 + (step - 16) / 8;
+		});
+		nesWaveCache = new Map([
+			["nes-square", createNesWave(squareSamples)],
+			["nes-triangle", createNesWave(triangleSamples)],
+		]);
+	}
+	return nesWaveCache.get(instrument);
+}
+
 function midiForSampleName(name) {
 	const match = /^([A-G]#?)(-?\d+)$/.exec(name);
 	if (!match) return null;
@@ -231,6 +271,11 @@ function loadSampleBuffer(instrument, sampleMidi, sampleData) {
 
 function prepareInstrument(instrument) {
 	audioStatus.textContent = `${instrumentSelect.selectedOptions[0].textContent} 음원 불러오는 중…`;
+	if (nesWaveforms.has(instrument)) {
+		getNesWaveform(instrument);
+		audioStatus.textContent = `${instrumentSelect.selectedOptions[0].textContent} 음색 준비됨`;
+		return;
+	}
 	loadSoundfont(instrument).then(() => {
 		if (instrumentSelect.value === instrument) {
 			audioStatus.textContent = `${instrumentSelect.selectedOptions[0].textContent} 샘플 준비됨`;
@@ -248,11 +293,23 @@ function startNote(token, note, midi, keyElement = keyElements.get(midi), instru
 	captureRecordingEvent("on", token, midi, instrument);
 	const context = getAudioContext();
 	const gain = context.createGain();
-	gain.gain.value = 0.8;
 	gain.connect(context.destination);
 	keyElement?.classList.add("is-active");
 	const voice = { gain, source: null, keyElement, midi, instrument };
 	activeVoices.set(token, voice);
+	if (nesWaveforms.has(instrument)) {
+		const oscillator = context.createOscillator();
+		oscillator.setPeriodicWave(getNesWaveform(instrument));
+		oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
+		const now = context.currentTime;
+		gain.gain.setValueAtTime(0.0001, now);
+		gain.gain.exponentialRampToValueAtTime(0.16, now + 0.005);
+		oscillator.connect(gain);
+		voice.source = oscillator;
+		oscillator.start(now);
+		return;
+	}
+	gain.gain.value = 0.8;
 	loadSoundfont(instrument).then((samples) => {
 		const [sampleMidi, sampleData] = [...samples.entries()]
 			.sort(([first], [second]) => Math.abs(first - midi) - Math.abs(second - midi))[0] ?? [];
@@ -358,7 +415,7 @@ function readSavedRecordings() {
 				(event.type === "on" || event.type === "off") &&
 				Number.isFinite(event.midi) &&
 				Number.isFinite(event.time) &&
-				(event.instrument === undefined || Object.hasOwn(soundfonts, event.instrument)),
+				(event.instrument === undefined || instrumentIds.has(event.instrument)),
 			),
 		) : [];
 	} catch {
