@@ -518,29 +518,26 @@ function deleteSavedRecording(recordingId) {
 	renderSavedRecordings();
 }
 
-document.addEventListener("keydown", (event) => {
-	if (
-		event.ctrlKey &&
-		(notes.some((note) => note.code === event.code) || event.code === "KeyS")
-	) {
+window.addEventListener("keydown", (event) => {
+	const note = notes.find((entry) => entry.code === event.code);
+	const isCtrlNote = event.ctrlKey && note;
+	if (isCtrlNote) {
 		event.preventDefault();
+		event.stopImmediatePropagation();
 	}
-}, true);
 
-document.addEventListener("keydown", (event) => {
 	if (["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight"].includes(event.code)) {
 		heldCodes.add(event.code);
 		updateOctave();
 		return;
 	}
 
-	const note = notes.find((entry) => entry.code === event.code);
 	if (!note || event.repeat) return;
 	event.preventDefault();
 	heldCodes.add(event.code);
 	const midi = (currentOctave() + 1) * 12 + notes.indexOf(note);
 	startNote(`keyboard-${event.code}`, note, midi);
-});
+}, true);
 
 document.addEventListener("keyup", (event) => {
 	heldCodes.delete(event.code);
