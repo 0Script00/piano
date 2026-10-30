@@ -128,8 +128,9 @@ for (let midi = 21; midi <= 108; midi += 1) {
 });
 
 function getOctaveOffset() {
-	if (heldCodes.has("ControlLeft") && heldCodes.has("ShiftLeft")) return 2;
-	if (heldCodes.has("ControlLeft")) return 1;
+	const controlHeld = heldCodes.has("ControlLeft") || heldCodes.has("ControlRight");
+	if (controlHeld && heldCodes.has("ShiftLeft")) return 2;
+	if (controlHeld) return 1;
 	if (heldCodes.has("ShiftLeft") && heldCodes.has("ShiftRight")) return -2;
 	if (heldCodes.has("ShiftLeft")) return -1;
 	return 0;
@@ -518,11 +519,16 @@ function deleteSavedRecording(recordingId) {
 }
 
 document.addEventListener("keydown", (event) => {
-	if (event.ctrlKey && event.code === "KeyS") event.preventDefault();
+	if (
+		event.ctrlKey &&
+		(notes.some((note) => note.code === event.code) || event.code === "KeyS")
+	) {
+		event.preventDefault();
+	}
 }, true);
 
 document.addEventListener("keydown", (event) => {
-	if (["ControlLeft", "ShiftLeft", "ShiftRight"].includes(event.code)) {
+	if (["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight"].includes(event.code)) {
 		heldCodes.add(event.code);
 		updateOctave();
 		return;
@@ -538,7 +544,7 @@ document.addEventListener("keydown", (event) => {
 
 document.addEventListener("keyup", (event) => {
 	heldCodes.delete(event.code);
-	if (["ControlLeft", "ShiftLeft", "ShiftRight"].includes(event.code)) updateOctave();
+	if (["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight"].includes(event.code)) updateOctave();
 	if (notes.some((note) => note.code === event.code)) stopNote(`keyboard-${event.code}`);
 });
 
