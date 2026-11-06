@@ -28,6 +28,12 @@ const recordingStatus = document.querySelector("#recording-status");
 const recordingNameInput = document.querySelector("#recording-name");
 const saveRecordingButton = document.querySelector("#save-recording");
 const savedRecordingsElement = document.querySelector("#saved-recordings");
+const backgroundRecordingEnabled = document.querySelector("#background-recording-enabled");
+const backgroundRecordingSelect = document.querySelector("#background-recording-select");
+const metronomeEnabled = document.querySelector("#metronome-enabled");
+const metronomeBpmInput = document.querySelector("#metronome-bpm");
+const metronomeBeatsInput = document.querySelector("#metronome-beats");
+const metronomeDenominatorSelect = document.querySelector("#metronome-denominator");
 const instrumentSelect = document.querySelector("#instrument-select");
 const instrumentLabel = document.querySelector("#instrument-label");
 const audioStatus = document.querySelector("#audio-status");
@@ -80,6 +86,11 @@ let isRecording = false;
 let isPlaying = false;
 let isMixPlaying = false;
 let mixPlaybackTimers = [];
+let backgroundPlaybackTimers = [];
+let metronomeSchedulerTimer = null;
+let nextMetronomeBeatTime = 0;
+let metronomeBeatIndex = 0;
+const metronomeNodes = new Set();
 
 function positionBlackKey(button, whiteIndex) {
 	const anchorWhiteKey = whiteKeys.children[whiteIndex];
@@ -174,6 +185,12 @@ function updateRecorder() {
 	clearButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	saveRecordingButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	addTrackButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
+	backgroundRecordingEnabled.disabled = isRecording || savedRecordings.length === 0;
+	backgroundRecordingSelect.disabled = isRecording || savedRecordings.length === 0;
+	metronomeEnabled.disabled = isRecording;
+	metronomeBpmInput.disabled = isRecording;
+	metronomeBeatsInput.disabled = isRecording;
+	metronomeDenominatorSelect.disabled = isRecording;
 	const noteCount = recordingEvents.filter((event) => event.type === "on").length;
 	recordingStatus.textContent = isRecording ? "REC · 녹음 중" : isMixPlaying ? "MIX · 재생 중" : noteCount ? `${noteCount}개 음 녹음됨` : "녹음 없음";
 	playMixButton.disabled = isRecording || isPlaying || mixerTracks.length === 0;
@@ -182,7 +199,7 @@ function updateRecorder() {
 }
 
 function captureRecordingEvent(type, token, midi, instrument = instrumentSelect.value) {
-	if (!isRecording) return;
+	if (!isRecording || token.startsWith("background-")) return;
 	if (type === "off" && !recordingTokens.has(token)) return;
 	if (type === "on") recordingTokens.add(token);
 	else recordingTokens.delete(token);
@@ -400,13 +417,99 @@ function toggleRecording() {
 		}
 		recordingTokens.clear();
 		isRecording = false;
+		stopBackgroundPlayback();
+		stopMetronome();
 	} else {
+		const backgroundRecording = backgroundRecordingEnabled.checked
+			? savedRecordings.find((recording) => recording.id === backgroundRecordingSelect.value)
+			: null;
+		const bpm = Number(metronomeBpmInput.value);
+		const beats = Number(metronomeBeatsInput.value);
+		if (backgroundRecordingEnabled.checked && !backgroundRecording) {
+			recordingStatus.textContent = "배경으로 재생할 녹음을 선택해 주세요.";
+			return;
+		}
+		if (metronomeEnabled.checked &&
+			(!Number.isInteger(bpm) || bpm < 20 || bpm > 300 ||
+				!Number.isInteger(beats) || beats < 1 || beats > 32)) {
+			recordingStatus.textContent = "BPM은 20~300, 박자는 1~32 사이로 입력해 주세요.";
+			return;
+		}
 		recordingEvents.length = 0;
 		recordingTokens.clear();
 		recordingStartedAt = performance.now();
 		isRecording = true;
+		if (backgroundRecording) playBackgroundRecording(backgroundRecording);
+		if (metronomeEnabled.checked) startMetronome(bpm, beats, Number(metronomeDenominatorSelect.value));
 	}
 	updateRecorder();
+}
+
+function playBackgroundRecording(recording) {
+	for (const event of recording.events) {
+		const timer = window.setTimeout(() => {
+			const token = `background-${recording.id}-${event.token}`;
+			if (event.type === "on") {
+				startNote(token, { note: pitchNames[event.midi % 12] }, event.midi, undefined, event.instrument ?? instrumentSelect.value);
+			} else {
+				stopNote(token);
+			}
+		}, event.time);
+		backgroundPlaybackTimers.push(timer);
+	}
+}
+
+function stopBackgroundPlayback() {
+	for (const timer of backgroundPlaybackTimers) window.clearTimeout(timer);
+	backgroundPlaybackTimers = [];
+	for (const token of activeVoices.keys()) {
+		if (token.startsWith("background-")) stopNote(token);
+	}
+}
+
+function scheduleMetronomeClick(context, when, accent) {
+	const oscillator = context.createOscillator();
+	const gain = context.createGain();
+	oscillator.type = "sine";
+	oscillator.frequency.value = accent ? 1320 : 880;
+	gain.gain.setValueAtTime(0.0001, when);
+	gain.gain.exponentialRampToValueAtTime(accent ? 0.24 : 0.15, when + 0.003);
+	gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.065);
+	oscillator.connect(gain);
+	gain.connect(masterGain);
+	oscillator.onended = () => metronomeNodes.delete(oscillator);
+	metronomeNodes.add(oscillator);
+	oscillator.start(when);
+	oscillator.stop(when + 0.07);
+}
+
+function startMetronome(bpm, beats, denominator) {
+	const context = getAudioContext();
+	const beatDuration = (60 / bpm) * (4 / denominator);
+	nextMetronomeBeatTime = context.currentTime + 0.05;
+	metronomeBeatIndex = 0;
+	const scheduleAhead = () => {
+		while (nextMetronomeBeatTime < context.currentTime + 0.1) {
+			scheduleMetronomeClick(context, nextMetronomeBeatTime, metronomeBeatIndex === 0);
+			metronomeBeatIndex = (metronomeBeatIndex + 1) % beats;
+			nextMetronomeBeatTime += beatDuration;
+		}
+	};
+	scheduleAhead();
+	metronomeSchedulerTimer = window.setInterval(scheduleAhead, 25);
+}
+
+function stopMetronome() {
+	if (metronomeSchedulerTimer !== null) {
+		window.clearInterval(metronomeSchedulerTimer);
+		metronomeSchedulerTimer = null;
+	}
+	if (!audioContext) return;
+	const now = audioContext.currentTime;
+	for (const oscillator of metronomeNodes) {
+		oscillator.stop(now);
+	}
+	metronomeNodes.clear();
 }
 
 function stopPlayback() {
@@ -678,6 +781,7 @@ function toggleMixPlayback() {
 
 function renderSavedRecordings() {
 	savedRecordingsElement.replaceChildren();
+	renderBackgroundRecordingOptions();
 	if (savedRecordings.length === 0) {
 		const emptyState = document.createElement("p");
 		emptyState.className = "library-empty";
@@ -718,6 +822,28 @@ function renderSavedRecordings() {
 		row.append(details, actions);
 		savedRecordingsElement.append(row);
 	}
+}
+
+function renderBackgroundRecordingOptions() {
+	const selectedId = backgroundRecordingSelect.value;
+	backgroundRecordingSelect.replaceChildren();
+	const placeholder = document.createElement("option");
+	placeholder.value = "";
+	placeholder.textContent = savedRecordings.length ? "저장된 녹음 선택" : "저장된 녹음 없음";
+	backgroundRecordingSelect.append(placeholder);
+	for (const recording of savedRecordings) {
+		const option = document.createElement("option");
+		option.value = recording.id;
+		option.textContent = recording.name;
+		backgroundRecordingSelect.append(option);
+	}
+	if (savedRecordings.some((recording) => recording.id === selectedId)) {
+		backgroundRecordingSelect.value = selectedId;
+	} else if (savedRecordings.length === 1) {
+		backgroundRecordingSelect.value = savedRecordings[0].id;
+	}
+	if (savedRecordings.length === 0) backgroundRecordingEnabled.checked = false;
+	updateRecorder();
 }
 
 function saveCurrentRecording() {
@@ -829,6 +955,9 @@ playButton.addEventListener("click", togglePlayback);
 clearButton.addEventListener("click", clearRecording);
 saveRecordingButton.addEventListener("click", saveCurrentRecording);
 addTrackButton.addEventListener("click", addMixerTrack);
+backgroundRecordingEnabled.addEventListener("change", updateRecorder);
+backgroundRecordingSelect.addEventListener("change", updateRecorder);
+metronomeEnabled.addEventListener("change", updateRecorder);
 playMixButton.addEventListener("click", toggleMixPlayback);
 clearMixButton.addEventListener("click", () => {
 	if (isMixPlaying) return;

@@ -116,6 +116,16 @@ h1 span { color: var(--green); }
 .play-icon { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid currentColor; }
 .clear-button { width: 32px; padding: 0; font-size: 18px; }
 .recording-status { color: var(--muted); font-family: "DM Mono", monospace; font-size: 10px; }
+.recording-options { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 18px; margin: 0 0 12px; }
+.recording-option { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.recording-option-toggle { display: inline-flex; align-items: center; gap: 5px; color: #50554e; font-size: 10px; white-space: nowrap; }
+.recording-option-toggle input { accent-color: var(--green); }
+.recording-setting { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; }
+.recording-setting input, .recording-option select { min-height: 32px; padding: 0 8px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font: inherit; font-size: 10px; }
+.recording-setting input { width: 64px; }
+.recording-option select { max-width: 190px; }
+.recording-setting input:focus-visible, .recording-option select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.recording-options :disabled { opacity: 0.5; }
 .recording-save-controls { display: flex; gap: 7px; margin: 0 0 12px; }
 .recording-save-controls input { width: min(240px, 55%); min-height: 34px; padding: 0 10px; border: 1px solid #cbc8bf; border-radius: 3px; outline: none; color: var(--ink); background: #faf9f4; font: inherit; font-size: 11px; }
 .recording-save-controls input:focus { border-color: var(--green); box-shadow: 0 0 0 2px #41664f1a; }

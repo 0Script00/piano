@@ -9,3 +9,7 @@ that has not been loaded in the current page session.
 
 The NES square/pulse and triangle instruments are generated with Web Audio
 periodic waveforms and do not require external samples.
+
+Recording can use a saved recording as a temporary background track and an
+optional metronome. The metronome supports 20–300 BPM and time signatures with
+1–32 beats using a half-, quarter-, eighth-, or sixteenth-note denominator.
