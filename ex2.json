@@ -1,0 +1,9 @@
+{
+    "type": "recode",
+    "name": "test",
+    "main": {
+        "_comment": "ex1.json 참고, 트랙 구분없이 했다고 보면 됨",
+        "instrument": "piano",
+        "1": [["G4", 100], ["F4", 100]]
+    }
+}

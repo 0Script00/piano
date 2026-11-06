@@ -27,7 +27,12 @@ const clearButton = document.querySelector("#clear-recording");
 const recordingStatus = document.querySelector("#recording-status");
 const recordingNameInput = document.querySelector("#recording-name");
 const saveRecordingButton = document.querySelector("#save-recording");
+const exportRecordingButton = document.querySelector("#export-recording");
 const savedRecordingsElement = document.querySelector("#saved-recordings");
+const jsonFileInput = document.querySelector("#json-file-input");
+const exportMixButton = document.querySelector("#export-mix-json");
+const importRecordingButton = document.querySelector("#import-recording-json");
+const importMixButton = document.querySelector("#import-mix-json");
 const backgroundRecordingEnabled = document.querySelector("#background-recording-enabled");
 const backgroundRecordingSelect = document.querySelector("#background-recording-select");
 const metronomeEnabled = document.querySelector("#metronome-enabled");
@@ -184,6 +189,7 @@ function updateRecorder() {
 	playButton.disabled = isRecording || isMixPlaying || recordingEvents.length === 0;
 	clearButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	saveRecordingButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
+	exportRecordingButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	addTrackButton.disabled = isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0;
 	backgroundRecordingEnabled.disabled = isRecording || savedRecordings.length === 0;
 	backgroundRecordingSelect.disabled = isRecording || savedRecordings.length === 0;
@@ -196,6 +202,7 @@ function updateRecorder() {
 	playMixButton.disabled = isRecording || isPlaying || mixerTracks.length === 0;
 	mixPlayLabel.textContent = isMixPlaying ? "믹스 정지" : "믹스 재생";
 	clearMixButton.disabled = isMixPlaying || mixerTracks.length === 0;
+	exportMixButton.disabled = isRecording || isPlaying || isMixPlaying || mixerTracks.length === 0;
 }
 
 function captureRecordingEvent(type, token, midi, instrument = instrumentSelect.value) {
@@ -598,6 +605,189 @@ function readMixerTracks() {
 	}
 }
 
+function midiForPitch(pitch) {
+	const match = /^([A-G]#?)(-?\d+)$/.exec(pitch);
+	if (!match) return null;
+	const pitchClass = pitchNames.indexOf(match[1]);
+	const midi = (Number(match[2]) + 1) * 12 + pitchClass;
+	return pitchClass >= 0 && midi >= 21 && midi <= 108 ? midi : null;
+}
+
+function eventsToTimeline(events) {
+	const timeline = {};
+	const activeNotes = new Map();
+	for (const event of events) {
+		if (event.type === "on") {
+			activeNotes.set(event.token, event);
+			continue;
+		}
+		const start = activeNotes.get(event.token);
+		if (!start) continue;
+		activeNotes.delete(event.token);
+		const time = String(Math.max(0, Math.round(start.time / 10)));
+		const duration = Math.max(1, Math.round((event.time - start.time) / 10));
+		(timeline[time] ??= []).push([`${pitchNames[start.midi % 12]}${Math.floor(start.midi / 12) - 1}`, duration]);
+	}
+	return timeline;
+}
+
+function timelineToEvents(timeline, instrument) {
+	if (!timeline || typeof timeline !== "object" || Array.isArray(timeline) || !instrumentIds.has(instrument)) {
+		throw new Error("녹음의 악기 또는 음표 형식이 올바르지 않습니다.");
+	}
+	const events = [];
+	let tokenIndex = 0;
+	for (const [timeKey, notesAtTime] of Object.entries(timeline)) {
+		if (["_comment", "instrument", "volume", "pan", "muted"].includes(timeKey)) continue;
+		const centiseconds = Number(timeKey);
+		if (!Number.isSafeInteger(centiseconds) || centiseconds < 0 || !Array.isArray(notesAtTime)) {
+			throw new Error("녹음의 시간 또는 음표 목록 형식이 올바르지 않습니다.");
+		}
+		for (const entry of notesAtTime) {
+			if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== "string" ||
+				!Number.isFinite(entry[1]) || entry[1] <= 0) {
+				throw new Error("녹음 음표는 [음, 길이] 형식이어야 합니다.");
+			}
+			const midi = midiForPitch(entry[0]);
+			if (midi === null) throw new Error(`지원하지 않는 음표입니다: ${entry[0]}`);
+			const token = `import-${tokenIndex++}`;
+			const time = centiseconds * 10;
+			events.push({ type: "on", token, midi, instrument, time });
+			events.push({ type: "off", token, midi, instrument, time: time + Math.max(10, Math.round(entry[1] * 10)) });
+		}
+	}
+	if (events.length === 0) throw new Error("JSON 파일에 불러올 음표가 없습니다.");
+	return events.sort((first, second) => first.time - second.time ||
+		(first.type === second.type ? 0 : first.type === "off" ? -1 : 1));
+}
+
+function recordingToJson(recording) {
+	const firstNote = recording.events.find((event) => event.type === "on");
+	if (!firstNote) throw new Error("내보낼 음표가 없습니다.");
+	return {
+		type: "recode",
+		name: recording.name,
+		main: {
+			instrument: firstNote.instrument ?? instrumentSelect.value,
+			...eventsToTimeline(recording.events),
+		},
+	};
+}
+
+function mixerToJson() {
+	if (mixerTracks.length === 0) throw new Error("내보낼 믹서 트랙이 없습니다.");
+	const main = {};
+	for (const track of mixerTracks) {
+		let trackName = track.name;
+		let suffix = 2;
+		while (Object.hasOwn(main, trackName)) trackName = `${track.name} (${suffix++})`;
+		main[trackName] = {
+			instrument: track.instrument,
+			volume: track.volume,
+			pan: track.pan,
+			muted: track.muted,
+			...eventsToTimeline(track.events),
+		};
+	}
+	return { type: "mixed", name: recordingNameInput.value.trim() || "믹서", main };
+}
+
+function downloadJson(data, fallbackName) {
+	const contents = JSON.stringify(data, null, 2);
+	const blob = new Blob([contents], { type: "application/json;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = `${(data.name || fallbackName).replace(/[\\/:*?"<>|]/g, "_")}.json`;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
+function importRecordingJson(data) {
+	if (isRecording || isPlaying || isMixPlaying) throw new Error("재생 또는 녹음을 멈춘 뒤 JSON을 불러와 주세요.");
+	if (data.type !== "recode" || typeof data.name !== "string" ||
+		!data.main || typeof data.main !== "object" || Array.isArray(data.main)) {
+		throw new Error('녹음 JSON은 type이 "recode"인 형식이어야 합니다.');
+	}
+	const events = timelineToEvents(data.main, data.main.instrument);
+	const recording = {
+		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		name: data.name.trim() || "가져온 녹음",
+		createdAt: new Date().toISOString(),
+		events,
+	};
+	savedRecordings.unshift(recording);
+	try {
+		window.localStorage.setItem(recordingStorageKey, JSON.stringify(savedRecordings));
+	} catch (error) {
+		savedRecordings.shift();
+		throw new Error("녹음을 브라우저에 저장하지 못했습니다.", { cause: error });
+	}
+	renderSavedRecordings();
+	recordingStatus.textContent = `${recording.name} JSON 불러옴`;
+}
+
+function importMixerJson(data) {
+	if (isRecording || isPlaying || isMixPlaying) throw new Error("재생 또는 녹음을 멈춘 뒤 JSON을 불러와 주세요.");
+	if (data.type !== "mixed" || typeof data.name !== "string" ||
+		!data.main || typeof data.main !== "object" || Array.isArray(data.main)) {
+		throw new Error('믹서 JSON은 type이 "mixed"인 형식이어야 합니다.');
+	}
+	const importedTracks = Object.entries(data.main)
+		.filter(([name]) => name !== "_comment")
+		.map(([name, track], index) => {
+			if (!track || typeof track !== "object" || Array.isArray(track)) {
+				throw new Error(`믹서 트랙 형식이 올바르지 않습니다: ${name}`);
+			}
+			const volume = track.volume ?? 1;
+			const pan = track.pan ?? 0;
+			const muted = track.muted ?? false;
+			if (!Number.isFinite(volume) || volume < 0 || volume > 1 ||
+				!Number.isFinite(pan) || pan < -1 || pan > 1 || typeof muted !== "boolean") {
+				throw new Error(`믹서 트랙 설정이 올바르지 않습니다: ${name}`);
+			}
+			const events = timelineToEvents(track, track.instrument);
+			return {
+				id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+				name,
+				instrument: track.instrument,
+				volume,
+				pan,
+				muted,
+				events,
+			};
+		});
+	if (importedTracks.length === 0) throw new Error("JSON 파일에 불러올 믹서 트랙이 없습니다.");
+	const previousTracks = mixerTracks;
+	mixerTracks = [...mixerTracks, ...importedTracks];
+	if (!persistMixerTracks()) {
+		mixerTracks = previousTracks;
+		throw new Error("믹서 트랙을 브라우저에 저장하지 못했습니다.");
+	}
+	renderMixerTracks();
+	recordingStatus.textContent = `${importedTracks.length}개 믹서 트랙 JSON 불러옴`;
+}
+
+let pendingJsonImportType = null;
+async function handleJsonFile() {
+	const [file] = jsonFileInput.files;
+	if (!file) return;
+	try {
+		const data = JSON.parse(await file.text());
+		if (pendingJsonImportType === "recode") importRecordingJson(data);
+		else if (pendingJsonImportType === "mixed") importMixerJson(data);
+		else throw new Error("불러올 파일 유형을 확인할 수 없습니다.");
+	} catch (error) {
+		console.error("Could not import JSON file", error);
+		recordingStatus.textContent = error instanceof SyntaxError
+			? "JSON 파일을 읽을 수 없습니다. 형식을 확인해 주세요."
+			: error.message || "JSON 파일을 불러오지 못했습니다.";
+	} finally {
+		jsonFileInput.value = "";
+		pendingJsonImportType = null;
+	}
+}
+
 function persistMixerTracks() {
 	try {
 		window.localStorage.setItem(mixerStorageKey, JSON.stringify(mixerTracks));
@@ -954,6 +1144,30 @@ recordButton.addEventListener("click", toggleRecording);
 playButton.addEventListener("click", togglePlayback);
 clearButton.addEventListener("click", clearRecording);
 saveRecordingButton.addEventListener("click", saveCurrentRecording);
+exportRecordingButton.addEventListener("click", () => {
+	try {
+		const name = recordingNameInput.value.trim() || `녹음 ${new Date().toLocaleString("ko-KR")}`;
+		downloadJson(recordingToJson({ name, events: recordingEvents }), name);
+	} catch (error) {
+		recordingStatus.textContent = error.message || "녹음 JSON을 저장하지 못했습니다.";
+	}
+});
+exportMixButton.addEventListener("click", () => {
+	try {
+		downloadJson(mixerToJson(), "믹서");
+	} catch (error) {
+		recordingStatus.textContent = error.message || "믹서 JSON을 저장하지 못했습니다.";
+	}
+});
+importRecordingButton.addEventListener("click", () => {
+	pendingJsonImportType = "recode";
+	jsonFileInput.click();
+});
+importMixButton.addEventListener("click", () => {
+	pendingJsonImportType = "mixed";
+	jsonFileInput.click();
+});
+jsonFileInput.addEventListener("change", handleJsonFile);
 addTrackButton.addEventListener("click", addMixerTrack);
 backgroundRecordingEnabled.addEventListener("change", updateRecorder);
 backgroundRecordingSelect.addEventListener("change", updateRecorder);
