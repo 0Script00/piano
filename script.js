@@ -215,11 +215,15 @@ function captureRecordingEvent(type, token, midi, instrument = instrumentSelect.
 	recordingEvents.push({ type, token, midi, instrument, time: performance.now() - recordingStartedAt });
 }
 
+function getSiteVolumeGain() {
+	return 1.5 * (2 * Number(siteVolume.value) / 100);
+}
+
 function getAudioContext() {
 	audioContext ??= new AudioContext();
 	if (!masterGain) {
 		masterGain = audioContext.createGain();
-		masterGain.gain.value = 1.5 * (Number(siteVolume.value) / 100);
+		masterGain.gain.value = getSiteVolumeGain();
 		outputLimiter = audioContext.createDynamicsCompressor();
 		outputLimiter.threshold.value = -1;
 		outputLimiter.knee.value = 0;
@@ -238,7 +242,7 @@ function updateSiteVolume() {
 	siteVolumeValue.value = `${volume}%`;
 	siteVolumeValue.textContent = `${volume}%`;
 	if (audioContext && masterGain) {
-		masterGain.gain.setTargetAtTime(1.5 * (volume / 100), audioContext.currentTime, 0.025);
+		masterGain.gain.setTargetAtTime(getSiteVolumeGain(), audioContext.currentTime, 0.025);
 	}
 }
 
