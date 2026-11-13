@@ -60,6 +60,12 @@
 							<option value="nes-triangle">삼각파</option>
 						</select>
 					</label>
+					<label class="site-volume-control" for="site-volume">사이트 음량
+						<span class="site-volume-input">
+							<input id="site-volume" type="range" min="0" max="100" step="1" value="50" aria-label="사이트 전체 음량" />
+							<output id="site-volume-value" for="site-volume" aria-live="polite">50%</output>
+						</span>
+					</label>
 					<span class="sample-credit">실제 샘플: <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">FluidR3 GM</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a></span>
 				</div>
 				<div class="piano-toolbar" aria-label="녹음 및 재생">

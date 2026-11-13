@@ -102,6 +102,11 @@ h1 span { color: var(--green); }
 .instrument-select-label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
 .instrument-select-label select { min-height: 34px; min-width: 155px; padding: 0 28px 0 9px; border: 1px solid #cbc8bf; border-radius: 3px; color: var(--ink); background: #faf9f4; font: inherit; font-size: 11px; }
 .instrument-select-label select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.site-volume-control { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
+.site-volume-input { min-height: 34px; display: flex; align-items: center; gap: 8px; }
+.site-volume-input input { width: 130px; accent-color: var(--green); }
+.site-volume-input output { min-width: 28px; color: var(--ink); font-family: "DM Mono", monospace; font-size: 10px; text-align: right; }
+.site-volume-input:focus-within { outline: 2px solid var(--green); outline-offset: 2px; }
 .sample-credit { align-self: center; color: var(--muted); font-size: 9px; }
 .sample-credit a { color: var(--green); }
 .piano-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin-bottom: 10px; }

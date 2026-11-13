@@ -41,6 +41,8 @@ const metronomeBeatsInput = document.querySelector("#metronome-beats");
 const metronomeDenominatorSelect = document.querySelector("#metronome-denominator");
 const instrumentSelect = document.querySelector("#instrument-select");
 const instrumentLabel = document.querySelector("#instrument-label");
+const siteVolume = document.querySelector("#site-volume");
+const siteVolumeValue = document.querySelector("#site-volume-value");
 const audioStatus = document.querySelector("#audio-status");
 const addTrackButton = document.querySelector("#add-mixer-track");
 const mixerTracksElement = document.querySelector("#mixer-tracks");
@@ -217,7 +219,7 @@ function getAudioContext() {
 	audioContext ??= new AudioContext();
 	if (!masterGain) {
 		masterGain = audioContext.createGain();
-		masterGain.gain.value = 1.5;
+		masterGain.gain.value = 1.5 * (Number(siteVolume.value) / 100);
 		outputLimiter = audioContext.createDynamicsCompressor();
 		outputLimiter.threshold.value = -1;
 		outputLimiter.knee.value = 0;
@@ -229,6 +231,15 @@ function getAudioContext() {
 	}
 	if (audioContext.state === "suspended") audioContext.resume();
 	return audioContext;
+}
+
+function updateSiteVolume() {
+	const volume = Number(siteVolume.value);
+	siteVolumeValue.value = `${volume}%`;
+	siteVolumeValue.textContent = `${volume}%`;
+	if (audioContext && masterGain) {
+		masterGain.gain.setTargetAtTime(1.5 * (volume / 100), audioContext.currentTime, 0.025);
+	}
 }
 
 function createNesWave(samples) {
@@ -1189,6 +1200,8 @@ instrumentSelect.addEventListener("change", () => {
 	instrumentLabel.textContent = instrumentSelect.selectedOptions[0].textContent;
 	prepareInstrument(instrumentSelect.value);
 });
+siteVolume.addEventListener("input", updateSiteVolume);
+updateSiteVolume();
 instrumentLabel.textContent = instrumentSelect.selectedOptions[0].textContent;
 prepareInstrument(instrumentSelect.value);
 updateOctave();
