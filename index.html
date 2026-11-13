@@ -42,77 +42,79 @@
 					<span><span id="instrument-label">PIANO</span> · <span id="range-label">ACTIVE C4</span></span>
 					<span class="sound-state"><span class="sound-dot"></span><span id="audio-status" role="status" aria-live="polite">실제 악기 음원 준비 중</span></span>
 				</div>
-				<div class="instrument-controls">
-					<label class="instrument-select-label" for="instrument-select">악기
-						<select id="instrument-select" aria-label="연주할 악기">
-							<option value="piano">피아노</option>
-							<option value="electric">일렉트릭 피아노</option>
-							<option value="organ">오르간</option>
-							<option value="ocarina">오카리나</option>
-							<option value="flute">플루트</option>
-							<option value="trombone">트롬본</option>
-							<option value="violin">바이올린</option>
-							<option value="cello">첼로</option>
-							<option value="harmonica">하모니카</option>
-							<option value="french-horn">호른</option>
-							<option value="harp">하프</option>
-							<option value="nes-square">사각파</option>
-							<option value="nes-triangle">삼각파</option>
-						</select>
-					</label>
-					<label class="site-volume-control" for="site-volume">사이트 음량
-						<span class="site-volume-input">
-							<input id="site-volume" type="range" min="0" max="100" step="1" value="50" aria-label="사이트 전체 음량" />
-							<output id="site-volume-value" for="site-volume" aria-live="polite">50%</output>
-						</span>
-					</label>
-					<span class="sample-credit">실제 샘플: <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">FluidR3 GM</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a></span>
-				</div>
-				<div class="piano-toolbar" aria-label="녹음 및 재생">
-					<div class="transport-controls">
-						<button class="transport-button record-button" id="record-toggle" type="button"><span class="record-icon" aria-hidden="true"></span><span id="record-label">녹음</span></button>
-						<button class="transport-button" id="play-recording" type="button" disabled><span class="play-icon" aria-hidden="true"></span><span id="play-label">재생</span></button>
-						<button class="transport-button clear-button" id="clear-recording" type="button" disabled aria-label="녹음 지우기" title="녹음 지우기"><span aria-hidden="true">×</span></button>
+				<div class="piano-control-panel">
+					<div class="instrument-controls">
+						<label class="instrument-select-label" for="instrument-select">악기
+							<select id="instrument-select" aria-label="연주할 악기">
+								<option value="piano">피아노</option>
+								<option value="electric">일렉트릭 피아노</option>
+								<option value="organ">오르간</option>
+								<option value="ocarina">오카리나</option>
+								<option value="flute">플루트</option>
+								<option value="trombone">트롬본</option>
+								<option value="violin">바이올린</option>
+								<option value="cello">첼로</option>
+								<option value="harmonica">하모니카</option>
+								<option value="french-horn">호른</option>
+								<option value="harp">하프</option>
+								<option value="nes-square">사각파</option>
+								<option value="nes-triangle">삼각파</option>
+							</select>
+						</label>
+						<label class="site-volume-control" for="site-volume">사이트 음량
+							<span class="site-volume-input">
+								<input id="site-volume" type="range" min="0" max="100" step="1" value="50" aria-label="사이트 전체 음량" />
+								<output id="site-volume-value" for="site-volume" aria-live="polite">50%</output>
+							</span>
+						</label>
+						<span class="sample-credit">실제 샘플: <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noreferrer">FluidR3 GM</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a></span>
 					</div>
-					<span class="recording-status" id="recording-status" aria-live="polite">녹음 없음</span>
-				</div>
-				<div class="recording-options" aria-label="녹음 옵션">
-					<div class="recording-option">
-						<label class="recording-option-toggle" for="background-recording-enabled">
-							<input id="background-recording-enabled" type="checkbox" />
-							<span>배경 녹음</span>
-						</label>
-						<label class="sr-only" for="background-recording-select">배경으로 재생할 녹음</label>
-						<select id="background-recording-select" aria-label="배경으로 재생할 녹음">
-							<option value="">저장된 녹음 선택</option>
-						</select>
+					<div class="piano-toolbar" aria-label="녹음 및 재생">
+						<div class="transport-controls">
+							<button class="transport-button record-button" id="record-toggle" type="button"><span class="record-icon" aria-hidden="true"></span><span id="record-label">녹음</span></button>
+							<button class="transport-button" id="play-recording" type="button" disabled><span class="play-icon" aria-hidden="true"></span><span id="play-label">재생</span></button>
+							<button class="transport-button clear-button" id="clear-recording" type="button" disabled aria-label="녹음 지우기" title="녹음 지우기"><span aria-hidden="true">×</span></button>
+						</div>
+						<span class="recording-status" id="recording-status" aria-live="polite">녹음 없음</span>
 					</div>
-					<div class="recording-option">
-						<label class="recording-option-toggle" for="metronome-enabled">
-							<input id="metronome-enabled" type="checkbox" />
-							<span>메트로놈</span>
-						</label>
-						<label class="recording-setting">BPM
-							<input id="metronome-bpm" type="number" min="20" max="300" step="1" value="100" />
-						</label>
-						<label class="sr-only" for="metronome-denominator">한 마디 기준 박자</label>
-						<select id="metronome-denominator" aria-label="한 마디 기준 박자">
-							<option value="16">16분의</option>
-							<option value="8">8분의</option>
-							<option value="4" selected>4분의</option>
-							<option value="2">2분의</option>
-						</select>
-						<label class="recording-setting">박자
-							<input id="metronome-beats" type="number" min="1" max="32" step="1" value="4" />
-						</label>
+					<div class="recording-options" aria-label="녹음 옵션">
+						<div class="recording-option">
+							<label class="recording-option-toggle" for="background-recording-enabled">
+								<input id="background-recording-enabled" type="checkbox" />
+								<span>배경 녹음</span>
+							</label>
+							<label class="sr-only" for="background-recording-select">배경으로 재생할 녹음</label>
+							<select id="background-recording-select" aria-label="배경으로 재생할 녹음">
+								<option value="">저장된 녹음 선택</option>
+							</select>
+						</div>
+						<div class="recording-option">
+							<label class="recording-option-toggle" for="metronome-enabled">
+								<input id="metronome-enabled" type="checkbox" />
+								<span>메트로놈</span>
+							</label>
+							<label class="recording-setting">BPM
+								<input id="metronome-bpm" type="number" min="20" max="300" step="1" value="100" />
+							</label>
+							<label class="sr-only" for="metronome-denominator">한 마디 기준 박자</label>
+							<select id="metronome-denominator" aria-label="한 마디 기준 박자">
+								<option value="16">16분의</option>
+								<option value="8">8분의</option>
+								<option value="4" selected>4분의</option>
+								<option value="2">2분의</option>
+							</select>
+							<label class="recording-setting">박자
+								<input id="metronome-beats" type="number" min="1" max="32" step="1" value="4" />
+							</label>
+						</div>
 					</div>
-				</div>
-				<div class="recording-save-controls">
-					<label class="sr-only" for="recording-name">녹음 이름</label>
-					<input id="recording-name" type="text" maxlength="40" placeholder="녹음 이름" autocomplete="off" />
-					<button class="transport-button save-recording-button" id="save-recording" type="button" disabled>사이트에 저장</button>
-					<button class="transport-button" id="export-recording" type="button" disabled>녹음 JSON 저장</button>
-					<button class="transport-button add-track-button" id="add-mixer-track" type="button" disabled>믹서에 트랙 추가</button>
+					<div class="recording-save-controls">
+						<label class="sr-only" for="recording-name">녹음 이름</label>
+						<input id="recording-name" type="text" maxlength="40" placeholder="녹음 이름" autocomplete="off" />
+						<button class="transport-button save-recording-button" id="save-recording" type="button" disabled>사이트에 저장</button>
+						<button class="transport-button" id="export-recording" type="button" disabled>녹음 JSON 저장</button>
+						<button class="transport-button add-track-button" id="add-mixer-track" type="button" disabled>믹서에 트랙 추가</button>
+					</div>
 				</div>
 				<div class="keyboard" id="keyboard" role="group" aria-label="A0부터 C8까지 가상 피아노">
 					<div class="white-keys" id="white-keys"></div>
