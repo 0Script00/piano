@@ -98,7 +98,7 @@ h1 span { color: var(--green); }
 .keyboard-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; color: #5f625b; }
 .sound-state { display: inline-flex; align-items: center; gap: 7px; }
 .sound-dot { width: 6px; height: 6px; background: var(--coral); }
-.piano-control-panel { display: grid; gap: 10px; margin-bottom: 13px; padding: 13px; border: 1px solid #cfcdc5; border-radius: 5px; background: #e8e7e1; }
+.piano-control-panel { display: grid; gap: 10px; margin-bottom: 13px; padding: 13px; border: 1px solid #999999; border-radius: 5px; background: #777777; }
 .piano-control-panel .instrument-controls, .piano-control-panel .piano-toolbar, .piano-control-panel .recording-options, .piano-control-panel .recording-save-controls { margin-bottom: 0; }
 .instrument-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; margin-bottom: 13px; }
 .instrument-select-label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
