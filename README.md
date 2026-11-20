@@ -18,4 +18,5 @@ Recordings and mixer tracks can be exported to and imported from JSON files.
 Files use `"type": "recode"` for a recording or `"type": "mixed"` for mixer
 tracks; each note track includes its instrument ID and stores note pitches and
 durations in 0.01-second units. Mixer track volume, pan, and mute settings are
-preserved as well.
+preserved as well. Saved recordings can be added directly to the mixer, and
+adding a recording to the mixer does not clear the current temporary recording.

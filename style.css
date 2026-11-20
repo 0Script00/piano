@@ -149,7 +149,7 @@ h1 span { color: var(--green); }
 .saved-recording-details { min-width: 0; display: grid; gap: 4px; }
 .saved-recording-name { overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .saved-recording-meta { font-family: "DM Mono", monospace; font-size: 9px; }
-.saved-recording-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.saved-recording-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .library-action { min-height: 29px; padding: 0 9px; border: 1px solid #d0cdc4; border-radius: 3px; color: #50554e; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
 .library-action:hover, .library-action:focus-visible { border-color: var(--green); color: var(--green); }
 .delete-recording:hover, .delete-recording:focus-visible { border-color: var(--coral); color: #a93f2a; }

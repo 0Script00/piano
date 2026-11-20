@@ -814,26 +814,29 @@ function persistMixerTracks() {
 	}
 }
 
-function addMixerTrack() {
-	if (isRecording || isPlaying || isMixPlaying || recordingEvents.length === 0) return;
-	const firstNote = recordingEvents.find((event) => event.type === "on");
+function addMixerTrack(recording = null) {
+	if (isRecording || isPlaying || isMixPlaying) return;
+	const events = recording?.events ?? recordingEvents;
+	if (events.length === 0) return;
+	const firstNote = events.find((event) => event.type === "on");
 	if (!firstNote) return;
 
 	const track = {
 		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-		name: recordingNameInput.value.trim() || `${instrumentSelect.selectedOptions[0].textContent} 트랙 ${mixerTracks.length + 1}`,
+		name: recording?.name || recordingNameInput.value.trim() || `${instrumentSelect.selectedOptions[0].textContent} 트랙 ${mixerTracks.length + 1}`,
 		instrument: firstNote.instrument ?? instrumentSelect.value,
 		volume: 1,
 		pan: 0,
 		muted: false,
-		events: recordingEvents.map((event) => ({ ...event })),
+		events: events.map((event) => ({ ...event })),
 	};
 	mixerTracks.push(track);
 	if (!persistMixerTracks()) {
 		mixerTracks.pop();
 		return;
 	}
-	recordingNameInput.value = "";
+	if (!recording) recordingNameInput.value = "";
+	recordingStatus.textContent = `${track.name} 믹서에 추가됨`;
 	renderMixerTracks();
 }
 
@@ -1017,13 +1020,18 @@ function renderSavedRecordings() {
 		loadButton.className = "library-action";
 		loadButton.textContent = "불러오기";
 		loadButton.addEventListener("click", () => loadSavedRecording(recording));
+		const addToMixerButton = document.createElement("button");
+		addToMixerButton.type = "button";
+		addToMixerButton.className = "library-action";
+		addToMixerButton.textContent = "믹서에 추가";
+		addToMixerButton.addEventListener("click", () => addMixerTrack(recording));
 		const deleteButton = document.createElement("button");
 		deleteButton.type = "button";
 		deleteButton.className = "library-action delete-recording";
 		deleteButton.textContent = "삭제";
 		deleteButton.setAttribute("aria-label", `${recording.name} 삭제`);
 		deleteButton.addEventListener("click", () => deleteSavedRecording(recording.id));
-		actions.append(loadButton, deleteButton);
+		actions.append(loadButton, addToMixerButton, deleteButton);
 		row.append(details, actions);
 		savedRecordingsElement.append(row);
 	}
