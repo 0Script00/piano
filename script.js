@@ -12,6 +12,15 @@ const notes = [
 	{ name: "라#", note: "A#", key: "U", code: "KeyU", black: true },
 	{ name: "시", note: "B", key: "J", code: "KeyJ", black: false },
 ];
+const upperOctaveNotes = [
+	{ note: "C", code: "KeyL" },
+	{ note: "D", code: "Semicolon" },
+	{ note: "E", code: "Quote" },
+	{ note: "F", code: "Enter" },
+	{ note: "C#", code: "KeyP" },
+	{ note: "D#", code: "BracketLeft" },
+	{ note: "F#", code: "Backslash" },
+];
 
 const whiteKeys = document.querySelector("#white-keys");
 const blackKeys = document.querySelector("#black-keys");
@@ -1122,7 +1131,9 @@ window.addEventListener("keydown", (event) => {
 	}
 
 	const note = notes.find((entry) => entry.code === event.code);
-	const isCtrlNote = event.ctrlKey && note;
+	const upperOctaveNote = upperOctaveNotes.find((entry) => entry.code === event.code);
+	const pressedNote = note ?? upperOctaveNote;
+	const isCtrlNote = event.ctrlKey && pressedNote;
 	if (isCtrlNote) {
 		event.preventDefault();
 		event.stopImmediatePropagation();
@@ -1134,17 +1145,21 @@ window.addEventListener("keydown", (event) => {
 		return;
 	}
 
-	if (!note || event.repeat) return;
+	if (!pressedNote || event.repeat) return;
 	event.preventDefault();
 	heldCodes.add(event.code);
-	const midi = (currentOctave() + 1) * 12 + notes.indexOf(note);
-	startNote(`keyboard-${event.code}`, note, midi);
+	const octave = currentOctave() + (upperOctaveNote ? 1 : 0);
+	const midi = (octave + 1) * 12 + pitchNames.indexOf(pressedNote.note);
+	startNote(`keyboard-${event.code}`, pressedNote, midi);
 }, true);
 
 document.addEventListener("keyup", (event) => {
 	heldCodes.delete(event.code);
 	if (["ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight"].includes(event.code)) updateOctave();
-	if (notes.some((note) => note.code === event.code)) stopNote(`keyboard-${event.code}`);
+	if (notes.some((note) => note.code === event.code) ||
+		upperOctaveNotes.some((note) => note.code === event.code)) {
+		stopNote(`keyboard-${event.code}`);
+	}
 });
 
 window.addEventListener("blur", () => {
